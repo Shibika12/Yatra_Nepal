@@ -8,11 +8,11 @@ export const Footer = () => {
     <div className="footer-container">
       <div className="footer-column">
         <img
-          src="/src/assets/images/Yatra.png"
+          src="/src/assets/images/canva.png"
           alt="Yatra Nepal Logo"
           className="footer-logo"
         />
-        <p>Yatra Nepal </p>
+       
       </div>
 
 

@@ -10,12 +10,12 @@ export const Navbar = () => {
 
       <nav className="navbar">
         <a onClick={() => navigate("/home")}>Home</a>
-        <a onClick={() => navigate("/donateblood")}>About Us</a>
-        <a onClick={() => navigate("/requestblood")}>Hire Guide</a>
-        <a onClick={() => navigate("/requestblood")}>Search</a>
+        <a onClick={() => navigate("/aboutus")}>About Us</a>
+        <a onClick={() => navigate("/hireguide")}>Hire Guide</a>
+        <a onClick={() => navigate("/profile")}>Profile</a>
         <span className="navButton active" onClick={() => navigate("/login")}>
           Log In
-        </span>
+        </span> 
       </nav>
      </header>
     </div>
