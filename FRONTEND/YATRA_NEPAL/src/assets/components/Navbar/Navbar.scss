@@ -1,0 +1,59 @@
+.Header {
+
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 2px 2%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+
+  }
+  .logoText {
+    font-size: 24px;
+    font-weight: bold;
+    color: black; 
+    font-family: "Lato", serif;
+    
+  }
+  
+  .navbar a {
+    position: relative;
+    font-size: 18px;
+    font-weight: bold;
+    color: rgb(0, 0, 0);
+    margin-right: 120px;
+    font-family: "lato", serif;
+  }
+  .navbar a::before {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: #3078ec;
+    transition: 0.3s;
+  }
+  .navbar a:hover::before {
+    width: 100%;
+  }
+  .navbar a:hover {
+    color: #3151df;
+  }
+  
+  .navButton {
+    color: #3078ec;
+    margin-right: 70px;
+    width: 95px;
+    border-radius: 20px;
+    cursor: pointer;
+    padding: 5px;
+    font-weight: bold;
+    font-family: "lato", serif;
+    font-size: 18px;
+  }
+  .navButton:hover {
+    color: darkblue;
+  }
