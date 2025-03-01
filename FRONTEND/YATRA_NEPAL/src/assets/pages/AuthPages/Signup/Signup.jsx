@@ -6,7 +6,8 @@ import Select from "react-select";
 import countryList from "react-select-country-list";
 import "./signup.scss";
 import axios from "axios";
-import Navbar from "../../components/Navbar/Navbar";
+import Navbar from "../../../components/Navbar/Navbar";
+
 
 export const Signup = () => {
   const navigate = useNavigate();

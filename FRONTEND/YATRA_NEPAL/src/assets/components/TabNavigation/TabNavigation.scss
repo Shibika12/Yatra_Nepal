@@ -1,0 +1,31 @@
+.tab-container {
+  display: flex;
+  justify-content: center;
+  gap: 60px; 
+  background: #f7f7f7;
+  padding: 5px; 
+  border-radius: 8px;
+  box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.1);
+  max-width: 900px;
+  margin: auto; 
+  margin-top: 20px;
+}
+
+.tab-item {
+  position: relative;
+  font-size: 18px; 
+  color: #333;
+  cursor: pointer;
+  padding: 6px 20px; /* Reduce padding */
+  transition: color 0.3s;
+  font-family: "lato",serif;
+}
+
+.tab-item:hover {
+  color: #00796b;
+}
+
+.active {
+  font-weight: bold;
+  color: #004d40;
+}

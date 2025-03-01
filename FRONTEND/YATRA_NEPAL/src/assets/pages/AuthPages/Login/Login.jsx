@@ -1,12 +1,13 @@
 import React from 'react'
 import { useNavigate,Link } from 'react-router-dom'
-import Navbar from '../../components/Navbar/Navbar'
+import Navbar from '../../../components/Navbar/Navbar';
+
 import "./Login.scss";
 export const Login = () => {
   const navigate = useNavigate();
   return (
     <div>
-      <Navbar />
+      <Navbar/>
       <div className="container-body">
         <div className="login-page">
           <div className="container-login">

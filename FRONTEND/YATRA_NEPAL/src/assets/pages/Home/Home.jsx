@@ -1,8 +1,15 @@
 import React from 'react'
+
+import { useNavigate } from 'react-router-dom';
 import Footer from '../../components/Footer/Footer';
 import Navbar from '../../components/Navbar/Navbar';
 import './Home.scss';
+
+
+
+  
 export const Home = () => {
+  const navigate = useNavigate();
     const destinations = [
         { src: "./src/assets/images/sway.jpg", title: "Swayambhunath Temple", location: "Kathmandu", className: "large" },
         { src: "./src/assets/images/redpanda.jpeg", title: "Beautiful Village", location: "Kathmandu", className: "small" },
@@ -15,21 +22,17 @@ export const Home = () => {
         <>
           <Navbar />
           <section className="hero">
-            <div className="hero-content">
-              <h1>
-                Explore Nepal Your Way with Local Experts <br />
-                <p>
-                Explore Nepal's beauty with local guides for peaks, culture, and hidden gems.
-              </p>
-              </h1>
-              
-              <button className="bookButton">Book Now</button>
-            </div>
-            <div className="navigation">
-              <button className="nav-btn left">&#8592;</button>
-              <button className="nav-btn right">&#8594;</button>
-            </div>
-          </section>
+      <div className="hero-image-container">
+      </div>
+      <div className="hero-content">
+        <h1>
+          Explore Nepal Your Way with Local Experts <br />
+          <p>Explore Nepal's beauty with local guides for peaks, culture, and hidden gems.</p>
+        </h1>
+        <button className="bookButton">Book Now</button>
+      </div>
+      
+    </section>
 
           {/* services sections below */}
           <section className="services">
@@ -129,7 +132,7 @@ export const Home = () => {
       </div>
     </div>
   </div>
-  <button className="chat-btn">💬 Chat</button>
+  <button onClick={() => navigate("/hireguide")}className ="chat-btn">Hire Now</button>
 </section>
 
 <section className="subscription">
@@ -142,7 +145,7 @@ export const Home = () => {
               </h1>
             </div>
             <div className="subs">
-              <button className="subscription-button">See More Highlights</button>
+              <button  className="subscription-button">See More Highlights</button>
             </div>
 </section>
 <Footer/>
