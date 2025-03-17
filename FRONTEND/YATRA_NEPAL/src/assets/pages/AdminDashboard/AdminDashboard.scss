@@ -1,0 +1,102 @@
+.admin-dashboard {
+    padding: 2rem;
+    background: url('/path-to-your-background.jpg') center/cover no-repeat fixed;
+    min-height: 100vh;
+
+    h1 {
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .guide-validation-section {
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 15px;
+        padding: 2rem;
+        
+        h2 {
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .guides-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .guide-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+
+            .guide-info {
+                color: white;
+                margin-bottom: 1rem;
+
+                h3 {
+                    margin-bottom: 0.5rem;
+                }
+
+                p {
+                    margin: 0.25rem 0;
+                }
+            }
+
+            .document-section {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                margin: 1rem 0;
+
+                .doc-button {
+                    padding: 0.5rem;
+                    background: transparent;
+                    border: 1px solid white;
+                    color: white;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                    }
+                }
+            }
+
+            .action-buttons {
+                display: flex;
+                gap: 1rem;
+                margin-top: 1rem;
+
+                button {
+                    flex: 1;
+                    padding: 0.75rem;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+
+                    &.approve-btn {
+                        background: #28a745;
+                        color: white;
+
+                        &:hover {
+                            background: #218838;
+                        }
+                    }
+
+                    &.reject-btn {
+                        background: #dc3545;
+                        color: white;
+
+                        &:hover {
+                            background: #c82333;
+                        }
+                    }
+                }
+            }
+        }
+    }
+} 

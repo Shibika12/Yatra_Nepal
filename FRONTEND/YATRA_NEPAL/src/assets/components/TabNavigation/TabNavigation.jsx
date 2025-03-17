@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import "./TabNavigation.scss";
 
-import AccountSetting from "../../pages/TabNavigationPages/AccountSetting/AccountSetting";
-import BlogWriting from "../../pages/TabNavigationPages/BlogWriting/BlogWriting";
-import GuideReview from "../../pages/TabNavigationPages/GuideReview/GuideReview";
+import AccountSetting from "../../pages/AccountSetting/AccountSetting";
+import BlogWriting from "../../pages/BlogWriting/BlogWriting";
+import GuideReview from "../../pages/GuideReview/GuideReview";
 
 export const TabNavigation = () => {
   const [activeTab, setActiveTab] = useState("Account Settings");

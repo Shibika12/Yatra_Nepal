@@ -8,10 +8,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize database connection
+
 connectToDatabase()
     .then(() => {
-        // Mount routes after DB connection is established
+        
         app.use('/auth', authRoutes);
         
         const PORT = 3002;

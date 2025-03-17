@@ -1,33 +1,94 @@
-import React from 'react'
-import { useNavigate,Link } from 'react-router-dom'
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import Navbar from '../../../components/Navbar/Navbar';
-
 import "./Login.scss";
+
 export const Login = () => {
   const navigate = useNavigate();
+  const [values, setValues] = useState({
+    email: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleChange = (e) => {
+    setValues({ ...values, [e.target.name]: e.target.value });
+    setError(''); // Clear error when user types
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:3002/auth/login', {
+        email: values.email,
+        password: values.password,
+      });
+  
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('userRole', response.data.role.toLowerCase());
+        localStorage.setItem('user', JSON.stringify(response.data));
+        
+        // Redirect based on role
+        if (response.data.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/home');
+        }
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.response?.data?.message || 'Invalid credentials');
+    }
+  };
+
   return (
     <div>
-      <Navbar/>
+      <Navbar />
       <div className="container-body">
         <div className="login-page">
           <div className="container-login">
             <div className="logo-Login">Yatra Nepal</div>
             <div className="tagline-Login">Enter Credentials to Login</div>
 
-            <div className="form-group-login">
-              <input type="email" placeholder="Email" />
-            </div>
+            {error && <div className="error-message">{error}</div>}
 
-            <div className="form-group-login">
-              <input type="password" placeholder="Password" />
-              <span className="toggle-password">
-                <i className="bi bi-eye"></i>
-              </span>
-            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="form-group-login">
+                <input 
+                  type="email" 
+                  name="email"
+                  placeholder="Email" 
+                  value={values.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            <div className="forgot-password">Forgot Password?</div>
+              <div className="form-group-login">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Password" 
+                  value={values.password}
+                  onChange={handleChange}
+                  required
+                />
+                <span 
+                  className="toggle-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
+                </span>
+              </div>
 
-            <button>Login</button>
+              <div className="forgot-password">Forgot Password?</div>
+
+              <button type="submit">Login</button>
+            </form>
+
             <div className="or">Or</div>
 
             <div className="google-login">
@@ -40,9 +101,7 @@ export const Login = () => {
             </div>
           </div>
         </div>
-       
       </div>
-      
     </div>
   );
 };

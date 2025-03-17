@@ -1,29 +1,117 @@
 import React from "react";
-import {BrowserRouter,Routes,Route} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+// Page imports
 import Home from "./assets/pages/Home/Home";
 import Login from "./assets/pages/AuthPages/Login/Login";
 import Signup from "./assets/pages/AuthPages/Signup/Signup";
-import GuideValidationForm from "./assets/pages/GuideValidation/GuideValidationForm";
 import AboutUs from "./assets/pages/AboutUs/AboutUs";
 import HireGuide from "./assets/pages/Hire Guide/HireGuide";
 import Profile from "./assets/pages/Profile/profile";
-function App(){
+import AdminDashboard from "./assets/pages/AdminDashboard/AdminDashboard";
+import { GuideValidationForm } from "./assets/pages/GuideValidation/GuideValidationForm";
+
+// Protected Route Components
+const ProtectedRoute = ({ children, allowedRoles = [], restrictedRoles = [] }) => {
+  const isAuthenticated = localStorage.getItem("token");
+  const userRole = localStorage.getItem("userRole");
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  // Check if user's role is restricted from this route
+  if (restrictedRoles.includes(userRole)) {
+    return <Navigate to="/admin/dashboard" />;
+  }
+
+  // Check if route requires specific roles
+  if (allowedRoles.length && !allowedRoles.includes(userRole)) {
+    return userRole === 'admin' ? <Navigate to="/admin/dashboard" /> : <Navigate to="/home" />;
+  }
+
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem("token");
+  const userRole = localStorage.getItem("userRole");
+  
+  if (isAuthenticated && userRole === 'admin') {
+    return <Navigate to="/admin/dashboard" />;
+  }
+  
+  return children;
+};
+
+// Modified SemiPublicRoute to handle both logged-in and non-logged-in users
+const SemiPublicRoute = ({ children }) => {
+  const userRole = localStorage.getItem("userRole");
+  
+  if (userRole === 'admin') {
+    return <Navigate to="/admin/dashboard" />;
+  }
+  
+  return children;
+};
+
+function App() {
   return (
-    <>
-      <BrowserRouter>
-        <Routes>
-        <Route path ="/home" element={<Home/>}/>
-        <Route path ="/login" element={<Login/>}/>
-        <Route path ="/aboutus" element={<AboutUs/>}/>
-        <Route path ="/signup" element={<Signup/>}/>
-        <Route path ="/hireguide" element={<HireGuide/>}/>
-        <Route path ="/profile" element={<Profile/>}/>
-        <Route path="/guide-validation" element={<GuideValidationForm />}/>
+    <BrowserRouter>
+      <Routes>
+        {/* Semi-Public Routes - accessible to visitors and regular users, but not admins */}
+        <Route path="/home" element={
+          <SemiPublicRoute>
+            <Home />
+          </SemiPublicRoute>
+        } />
+        <Route path="/aboutus" element={
+          <SemiPublicRoute>
+            <AboutUs />
+          </SemiPublicRoute>
+        } />
+        <Route path="/hireguide" element={
+          <SemiPublicRoute>
+            <HireGuide />
+          </SemiPublicRoute>
+        } />
+        <Route path="/" element={<Navigate to="/home" />} />
 
-        </Routes>
-      </BrowserRouter>
-    </>
-  )
+        {/* Auth Routes - Prevent access when logged in */}
+        <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } />
+        <Route path="/signup" element={
+          <PublicRoute>
+            <Signup />
+          </PublicRoute>
+        } />
 
+        {/* Protected Guide Routes */}
+        <Route path="/guide/validation" element={
+          <ProtectedRoute allowedRoles={["Guide"]}>
+            <GuideValidationForm />
+          </ProtectedRoute>
+        } />
+        
+        {/* Protected User Routes - Explicitly restrict admin access */}
+        <Route path="/profile" element={
+          <ProtectedRoute restrictedRoles={['admin']}>
+            <Profile />
+          </ProtectedRoute>
+        } />
+
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
 }
-export default App
+
+export default App;

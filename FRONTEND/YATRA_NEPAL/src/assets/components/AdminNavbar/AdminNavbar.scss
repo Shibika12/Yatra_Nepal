@@ -1,0 +1,86 @@
+.Header {
+  top: 0;
+  left: 0;
+  padding: 2px 2%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+}
+
+.logoText {
+  font-size: 24px;
+  font-weight: bold;
+  color: black; 
+  font-family: "Lato", serif;
+}
+
+.navbar {
+  .navButton {
+    color: #3078ec;
+    margin-right: 70px;
+    width: 95px;
+    border-radius: 20px;
+    cursor: pointer;
+    padding: 5px;
+    font-weight: bold;
+    font-family: "lato", serif;
+    font-size: 18px;
+    
+    &:hover {
+      color: darkblue;
+    }
+  }
+}
+
+// Modal styles from original Navbar.scss
+.modal-content {
+  border-radius: 8px;
+  
+  .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    
+    .modal-title {
+      color: #333;
+      font-family: "Lato", serif;
+      font-weight: bold;
+    }
+  }
+
+  .modal-body {
+    padding: 20px;
+    font-family: "Lato", serif;
+    color: #555;
+  }
+
+  .modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 15px;
+
+    button {
+      padding: 8px 20px;
+      font-family: "Lato", serif;
+      
+      &.btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        
+        &:hover {
+          background-color: #5a6268;
+          border-color: #545b62;
+        }
+      }
+      
+      &.btn-primary {
+        background-color: #3078ec;
+        border-color: #3078ec;
+        
+        &:hover {
+          background-color: #2666cb;
+          border-color: #2666cb;
+        }
+      }
+    }
+  }
+}
