@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './AdminSidebar.scss';
-import { FaUsers, FaBlog, FaStar, FaUserCheck, FaSignOutAlt } from 'react-icons/fa';
+import { FaUsers, FaBlog, FaStar, FaUserCheck, FaSignOutAlt, FaTachometerAlt, FaCog } from 'react-icons/fa';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -24,6 +24,10 @@ const AdminSidebar = () => {
         <h3>Admin Panel</h3>
       </div>
       <nav className="sidebar-nav">
+        <Link to="/admin/overview" className={`nav-item ${isActive('/admin/overview')}`}>
+          <FaTachometerAlt />
+          <span>Dashboard</span>
+        </Link>
         <Link to="/admin/dashboard" className={`nav-item ${isActive('/admin/dashboard')}`}>
           <FaUserCheck />
           <span>Pending Guides</span>
@@ -39,6 +43,10 @@ const AdminSidebar = () => {
         <Link to="/admin/reviews" className={`nav-item ${isActive('/admin/reviews')}`}>
           <FaStar />
           <span>Guide Reviews</span>
+        </Link>
+        <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings')}`}>
+          <FaCog />
+          <span>Settings</span>
         </Link>
         <button onClick={handleLogout} className="nav-item logout-btn">
           <FaSignOutAlt />

@@ -11,6 +11,9 @@ import Profile from "./assets/pages/Profile/profile";
 import AdminDashboard from "./assets/pages/AdminDashboard/AdminDashboard";
 import { GuideValidationForm } from "./assets/pages/GuideValidation/GuideValidationForm";
 import GuideDetails from "./assets/pages/GuideDetails/GuideDetails";
+import AdminOverview from "./assets/pages/AdminOverview/AdminOverview";
+import AdminSidebar from "./assets/components/AdminSidebar/AdminSidebar";
+import AdminUsers from "./assets/pages/AdminUsers/AdminUsers";
 
 // Protected Route Components
 const ProtectedRoute = ({ children, allowedRoles = [], restrictedRoles = [] }) => {
@@ -108,6 +111,30 @@ function App() {
         } />
 
         <Route path="/admin/guide/:guideId" element={<GuideDetails />} />
+
+        <Route path="/admin/overview" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminOverview />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/settings" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <div className="admin-layout">
+              <AdminSidebar />
+              <div className="admin-main">
+                <h1>Settings Page</h1>
+                <p>Settings functionality coming soon...</p>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/users" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminUsers />
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );
