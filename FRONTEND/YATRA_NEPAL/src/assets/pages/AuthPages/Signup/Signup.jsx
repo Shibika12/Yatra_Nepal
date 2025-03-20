@@ -77,20 +77,14 @@ export const Signup = () => {
         is_verified: 0
       };
 
-      console.log('Sending signup data:', signupData); // Debug log
-
       const response = await axios.post("http://localhost:3002/auth/signup", signupData);
       
-      console.log('Signup response:', response.data); // Debug log
-
       if (response.data && response.data.userId) {
         if (activeTab === "Tour Guide") {
-          // Store the userId in localStorage instead of sessionStorage
           localStorage.setItem('tempGuideId', response.data.userId.toString());
-          console.log('Stored guide ID:', response.data.userId); // Debug log
-          navigate("/guide-validation");
+          navigate("/guide/validation");
         } else {
-          alert("Registration successful!");
+          alert("Registration successful! Please login to continue.");
           navigate("/login");
         }
       } else {
@@ -139,17 +133,7 @@ export const Signup = () => {
                   <input type="email" name="email" placeholder="Email" onChange={handleChanges} required />
                 </div>
                 <div className="form-group">
-                  {activeTab === "Tourist" ? (
-                    <Select
-                      options={countries}
-                      placeholder="Select Nationality"
-                      onChange={(option) => setValues((prev) => ({ ...prev, nationality: option.value }))}
-                      className="nationality-select"
-                      classNamePrefix="select"
-                    />
-                  ) : (
-                    <input type="password" name="password" placeholder="Password" onChange={handleChanges} required />
-                  )}
+                  <input type="password" name="password" placeholder="Password" onChange={handleChanges} required />
                 </div>
               </div>
 
@@ -158,8 +142,9 @@ export const Signup = () => {
                 <div className="form-group">
                   <input type="tel" name="phone_number" placeholder="Contact Number" onChange={handleChanges} required />
                 </div>
-
-                {/* Fixed Conditional Rendering */}
+                <div className="form-group">
+                  <input type="password" name="confirmPassword" placeholder="Confirm Password" onChange={handleChanges} required />
+                </div>
                 {activeTab === "Tour Guide" ? (
                   <div className="form-group">
                     <Select
@@ -174,7 +159,13 @@ export const Signup = () => {
                   </div>
                 ) : (
                   <div className="form-group">
-                    <input type="password" name="confirmPassword" placeholder="Confirm Password" onChange={handleChanges} required />
+                    <Select
+                      options={countries}
+                      placeholder="Select Nationality"
+                      onChange={(option) => setValues((prev) => ({ ...prev, nationality: option.value }))}
+                      className="nationality-select"
+                      classNamePrefix="select"
+                    />
                   </div>
                 )}
               </div>

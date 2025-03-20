@@ -51,13 +51,14 @@ router.post('/signup', async (req, res) => {
             phone_number, 
             nationality, 
             user_type, 
-            guide_type,
-            is_admin, 
-            is_verified 
+            guide_type
         } = req.body;
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Set is_verified based on user type
+        const is_verified = user_type === 'Tourist' ? 1 : 0;
 
         // Insert user and get the inserted ID
         const [result] = await pool.query(
@@ -80,12 +81,11 @@ router.post('/signup', async (req, res) => {
                 nationality,
                 user_type,
                 guide_type,
-                is_admin || 0,
-                is_verified || 0
+                0, // is_admin
+                is_verified // automatically set based on user type
             ]
         );
 
-        // Return the user ID in the response
         res.status(200).json({ 
             message: "User registered successfully",
             userId: result.insertId 
@@ -102,17 +102,11 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // Debug log
-        console.log('Login attempt:', { email });
-
         // Check if user exists
         const [users] = await pool.query(
-            "SELECT * FROM Users WHERE email = ?",
+            "SELECT u.*, gd.status as guide_status FROM Users u LEFT JOIN GuideDocuments gd ON u.user_id = gd.user_id WHERE u.email = ? ORDER BY gd.uploaded_at DESC LIMIT 1",
             [email]
         );
-
-        // Debug log
-        console.log('Found users:', users);
 
         if (users.length === 0) {
             return res.status(401).json({ message: "Invalid credentials" });
@@ -123,31 +117,43 @@ router.post('/login', async (req, res) => {
         // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password);
         
-        // Debug log
-        console.log('Password validation:', { isValidPassword });
-
         if (!isValidPassword) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        if (user.user_type === 'Guide' && !user.is_verified) {
-            return res.status(403).json({ 
-                message: "Your account is pending approval. Please wait for admin verification." 
-            });
+        // If user is a guide, check their document status
+        if (user.user_type === 'Guide') {
+            if (user.guide_status === 'rejected') {
+                return res.status(403).json({ 
+                    success: false,
+                    message: "Your guide application has been rejected. Please contact support for more information."
+                });
+            }
+            if (user.guide_status === 'pending') {
+                return res.status(403).json({ 
+                    success: false,
+                    message: "Your account is pending approval. Please wait for admin verification."
+                });
+            }
         }
 
-        // Generate JWT token
+        // Clear any existing tokens from localStorage
+        res.clearCookie('token');
+
+        // Generate token only for approved guides or non-guide users
         const token = jwt.sign(
-            { userId: user.id, role: user.user_type },
+            { userId: user.user_id, role: user.user_type },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '24h' }
         );
 
-        // Remove password from user object before sending
+        // Remove password from user object
         delete user.password;
+        delete user.guide_status;
 
-        const isAdmin = user.user_type === 'Admin'; // Check if user is admin
+        const isAdmin = user.user_type === 'Admin';
         res.status(200).json({
+            success: true,
             token,
             role: isAdmin ? 'admin' : user.user_type,
             is_admin: isAdmin,
@@ -156,7 +162,11 @@ router.post('/login', async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: "Server error", error: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: "Server error", 
+            error: error.message 
+        });
     }
 });
 

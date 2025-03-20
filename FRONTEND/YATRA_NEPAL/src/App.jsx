@@ -10,6 +10,7 @@ import HireGuide from "./assets/pages/Hire Guide/HireGuide";
 import Profile from "./assets/pages/Profile/profile";
 import AdminDashboard from "./assets/pages/AdminDashboard/AdminDashboard";
 import { GuideValidationForm } from "./assets/pages/GuideValidation/GuideValidationForm";
+import GuideDetails from "./assets/pages/GuideDetails/GuideDetails";
 
 // Protected Route Components
 const ProtectedRoute = ({ children, allowedRoles = [], restrictedRoles = [] }) => {
@@ -90,11 +91,7 @@ function App() {
         } />
 
         {/* Protected Guide Routes */}
-        <Route path="/guide/validation" element={
-          <ProtectedRoute allowedRoles={["Guide"]}>
-            <GuideValidationForm />
-          </ProtectedRoute>
-        } />
+        <Route path="/guide/validation" element={<GuideValidationForm />} />
         
         {/* Protected User Routes - Explicitly restrict admin access */}
         <Route path="/profile" element={
@@ -109,6 +106,8 @@ function App() {
             <AdminDashboard />
           </ProtectedRoute>
         } />
+
+        <Route path="/admin/guide/:guideId" element={<GuideDetails />} />
       </Routes>
     </BrowserRouter>
   );

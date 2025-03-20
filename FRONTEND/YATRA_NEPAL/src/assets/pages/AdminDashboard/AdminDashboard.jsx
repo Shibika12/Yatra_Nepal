@@ -1,98 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.scss';
-import AdminNavbar from '../../components/AdminNavbar/AdminNavbar';
+import AdminSidebar from '../../components/AdminSidebar/AdminSidebar';
 
 export const AdminDashboard = () => {
-  const [pendingGuides, setPendingGuides] = useState([]);
+  const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchPendingGuides();
+    fetchGuides();
   }, []);
 
-  const fetchPendingGuides = async () => {
+  const fetchGuides = async () => {
     try {
       const response = await axios.get('http://localhost:3002/admin/pending-guides');
-      setPendingGuides(response.data);
+      setGuides(response.data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching pending guides:', error);
+      console.error('Error fetching guides:', error);
       setLoading(false);
     }
   };
 
-  const handleApproval = async (guideId, status) => {
-    try {
-      await axios.post(`http://localhost:3002/admin/guide-approval`, {
-        guideId,
-        status
-      });
-      
-      // Refresh the list after approval/rejection
-      fetchPendingGuides();
-      alert(`Guide ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
-    } catch (error) {
-      console.error('Error updating guide status:', error);
-      alert('Error updating guide status');
-    }
-  };
-
-  const viewDocument = (documentUrl) => {
-    window.open(documentUrl, '_blank');
+  const handleGuideClick = (guideId) => {
+    navigate(`/admin/guide/${guideId}`);
   };
 
   return (
-    <>
-      <AdminNavbar />
-      <div className="admin-dashboard">
-        <h1>Admin Dashboard</h1>
-        <div className="guide-validation-section">
-          <h2>Pending Guide Validations</h2>
+    <div className="admin-layout">
+      <AdminSidebar />
+      <div className="admin-main">
+        <div className="admin-dashboard">
+          <h1>Pending Guide Applications</h1>
+          
           {loading ? (
-            <p>Loading...</p>
-          ) : pendingGuides.length === 0 ? (
-            <p>No pending guide validations</p>
+            <div className="loading">Loading...</div>
+          ) : guides.length === 0 ? (
+            <div className="no-guides">No pending guide applications</div>
           ) : (
-            <div className="guides-grid">
-              {pendingGuides.map((guide) => (
-                <div key={guide.user_id} className="guide-card">
-                  <div className="guide-info">
+            <div className="guides-list">
+              {guides.map(guide => (
+                <div 
+                  key={guide.user_id} 
+                  className="guide-item"
+                  onClick={() => handleGuideClick(guide.user_id)}
+                >
+                  <div className="guide-info-preview">
                     <h3>{guide.name}</h3>
                     <p>Email: {guide.email}</p>
                     <p>Phone: {guide.phone_number}</p>
                     <p>Guide Type: {guide.guide_type}</p>
-                    <p>Experience: {guide.years_of_experience} years</p>
-                  </div>
-                  
-                  <div className="document-section">
-                    <button 
-                      onClick={() => viewDocument(guide.citizenship_document)}
-                      className="doc-button"
-                    >
-                      View Citizenship Document
-                    </button>
-                    <button 
-                      onClick={() => viewDocument(guide.guide_license)}
-                      className="doc-button"
-                    >
-                      View Guide License
-                    </button>
-                  </div>
-
-                  <div className="action-buttons">
-                    <button 
-                      onClick={() => handleApproval(guide.user_id, 'approved')}
-                      className="approve-btn"
-                    >
-                      Approve
-                    </button>
-                    <button 
-                      onClick={() => handleApproval(guide.user_id, 'rejected')}
-                      className="reject-btn"
-                    >
-                      Reject
-                    </button>
+                    <span className="status pending">
+                      Pending Approval
+                    </span>
                   </div>
                 </div>
               ))}
@@ -100,8 +62,8 @@ export const AdminDashboard = () => {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;
