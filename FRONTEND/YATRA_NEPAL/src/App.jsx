@@ -6,7 +6,7 @@ import Home from "./assets/pages/Home/Home";
 import Login from "./assets/pages/AuthPages/Login/Login";
 import Signup from "./assets/pages/AuthPages/Signup/Signup";
 import AboutUs from "./assets/pages/AboutUs/AboutUs";
-import HireGuide from "./assets/pages/Hire Guide/HireGuide";
+import HireGuide from "./assets/pages/HireGuide/HireGuide";
 import Profile from "./assets/pages/Profile/profile";
 import AdminDashboard from "./assets/pages/AdminDashboard/AdminDashboard";
 import { GuideValidationForm } from "./assets/pages/GuideValidation/GuideValidationForm";
@@ -16,6 +16,8 @@ import AdminSidebar from "./assets/components/AdminSidebar/AdminSidebar";
 import AdminUsers from "./assets/pages/AdminUsers/AdminUsers";
 import AdminBlogs from "./assets/pages/AdminBlogs/AdminBlogs";
 import AdminReviews from "./assets/pages/AdminReviews/AdminReviews";
+import AdminSettings from "./assets/pages/AdminSettings/AdminSettings";
+
 
 // Protected Route Components
 const ProtectedRoute = ({ children, allowedRoles = [], restrictedRoles = [] }) => {
@@ -120,17 +122,12 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/admin/settings" element={
+       <Route path="/admin/settings" element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <div className="admin-layout">
-              <AdminSidebar />
-              <div className="admin-main">
-                <h1>Settings Page</h1>
-                <p>Settings functionality coming soon...</p>
-              </div>
-            </div>
+            <AdminSettings />
           </ProtectedRoute>
         } />
+
 
         <Route path="/admin/users" element={
           <ProtectedRoute allowedRoles={['admin']}>

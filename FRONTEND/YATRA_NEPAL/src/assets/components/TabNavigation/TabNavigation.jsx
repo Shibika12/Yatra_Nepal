@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import "./TabNavigation.scss";
 
-import AccountSetting from "../../pages/AccountSetting/AccountSetting";
-import BlogWriting from "../../pages/BlogWriting/BlogWriting";
-import GuideReview from "../../pages/GuideReview/GuideReview";
+// These components will be imported once they're created
+// import AccountSetting from "../../pages/AccountSetting/AccountSetting";
+// import BlogWriting from "../../pages/BlogWriting/BlogWriting";
+// import GuideReview from "../../pages/GuideReview/GuideReview";
 
 export const TabNavigation = () => {
   const [activeTab, setActiveTab] = useState("Account Settings");
@@ -28,9 +29,9 @@ export const TabNavigation = () => {
 
       {/* Content based on active tab */}
       <div className="tab-content">
-        {activeTab === "Guide Review" && <GuideReview/>}
-        {activeTab === "Blog Writing" && <BlogWriting/>}
-        {activeTab === "Account Settings" && <AccountSetting />}
+        {activeTab === "Guide Review" && <div>Guide Review Coming Soon</div>}
+        {activeTab === "Blog Writing" && <div>Blog Writing Coming Soon</div>}
+        {activeTab === "Account Settings" && <div>Account Settings Coming Soon</div>}
       </div>
     </div>
   );

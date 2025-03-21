@@ -1,173 +1,174 @@
+
 .Header {
 
-    top: 0;
-    left: 0;
-    // width: 100%;
-    padding: 2px 2%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 100;
+  top: 0;
+  left: 0;
+  // width: 100%;
+  padding: 2px 2%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
 
-  }
-  .logoText {
-    font-size: 24px;
-    font-weight: bold;
-    color: black; 
-    font-family: "Lato", serif;
-    
-  }
+}
+.logoText {
+  font-size: 24px;
+  font-weight: bold;
+  color: black; 
+  font-family: "Lato", serif;
   
-  .navbar a {
-    position: relative;
+}
+
+.navbar a {
+  position: relative;
+  font-size: 18px;
+  font-weight: bold;
+  color: rgb(0, 0, 0);
+  margin-right: 120px;
+  font-family: "lato", serif;
+}
+.navbar a::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #3078ec;
+  transition: 0.3s;
+}
+.navbar a:hover::before {
+  width: 100%;
+}
+.navbar a:hover {
+  color: #3151df;
+}
+
+.navbar {
+  .username {
     font-size: 18px;
     font-weight: bold;
-    color: rgb(0, 0, 0);
-    margin-right: 120px;
+    color: #3078ec;
+    margin-right: 20px;
     font-family: "lato", serif;
   }
-  .navbar a::before {
-    content: "";
+
+  .navButton {
+    color: #3078ec;
+    margin-right: 70px;
+    width: 95px;
+    border-radius: 20px;
+    cursor: pointer;
+    padding: 5px;
+    font-weight: bold;
+    font-family: "lato", serif;
+    font-size: 18px;
+    
+    &:hover {
+      color: darkblue;
+    }
+
+    &.active {
+      // Add any specific styles for the active state
+    }
+  }
+}
+
+.user-menu {
+  position: relative;
+  
+  .user-name {
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .dropdown-menu {
     position: absolute;
     top: 100%;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background-color: #3078ec;
-    transition: 0.3s;
+    right: 0;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 8px 0;
+    min-width: 150px;
+    z-index: 1000;
+
+    a, button {
+      display: block;
+      width: 100%;
+      padding: 8px 16px;
+      text-align: left;
+      border: none;
+      background: none;
+      color: #333;
+      text-decoration: none;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+    }
+
+    button {
+      color: #dc3545;
+      font-weight: 500;
+    }
   }
-  .navbar a:hover::before {
-    width: 100%;
-  }
-  .navbar a:hover {
-    color: #3151df;
-  }
+}
+
+// Custom modal styles
+.modal-content {
+  border-radius: 8px;
   
-  .navbar {
-    .username {
-      font-size: 18px;
-      font-weight: bold;
-      color: #3078ec;
-      margin-right: 20px;
-      font-family: "lato", serif;
-    }
-
-    .navButton {
-      color: #3078ec;
-      margin-right: 70px;
-      width: 95px;
-      border-radius: 20px;
-      cursor: pointer;
-      padding: 5px;
-      font-weight: bold;
-      font-family: "lato", serif;
-      font-size: 18px;
-      
-      &:hover {
-        color: darkblue;
-      }
-
-      &.active {
-        // Add any specific styles for the active state
-      }
-    }
-  }
-
-  .user-menu {
-    position: relative;
+  .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
     
-    .user-name {
-      cursor: pointer;
-      padding: 8px 12px;
-      border-radius: 4px;
-      
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
-    }
-
-    .dropdown-menu {
-      position: absolute;
-      top: 100%;
-      right: 0;
-      background: white;
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      padding: 8px 0;
-      min-width: 150px;
-      z-index: 1000;
-
-      a, button {
-        display: block;
-        width: 100%;
-        padding: 8px 16px;
-        text-align: left;
-        border: none;
-        background: none;
-        color: #333;
-        text-decoration: none;
-        cursor: pointer;
-
-        &:hover {
-          background-color: #f5f5f5;
-        }
-      }
-
-      button {
-        color: #dc3545;
-        font-weight: 500;
-      }
-    }
-  }
-
-  // Custom modal styles
-  .modal-content {
-    border-radius: 8px;
-    
-    .modal-header {
-      background-color: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
-      
-      .modal-title {
-        color: #333;
-        font-family: "Lato", serif;
-        font-weight: bold;
-      }
-    }
-
-    .modal-body {
-      padding: 20px;
+    .modal-title {
+      color: #333;
       font-family: "Lato", serif;
-      color: #555;
+      font-weight: bold;
     }
+  }
 
-    .modal-footer {
-      border-top: 1px solid #dee2e6;
-      padding: 15px;
+  .modal-body {
+    padding: 20px;
+    font-family: "Lato", serif;
+    color: #555;
+  }
 
-      button {
-        padding: 8px 20px;
-        font-family: "Lato", serif;
+  .modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 15px;
+
+    button {
+      padding: 8px 20px;
+      font-family: "Lato", serif;
+      
+      &.btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
         
-        &.btn-secondary {
-          background-color: #6c757d;
-          border-color: #6c757d;
-          
-          &:hover {
-            background-color: #5a6268;
-            border-color: #545b62;
-          }
+        &:hover {
+          background-color: #5a6268;
+          border-color: #545b62;
         }
+      }
+      
+      &.btn-primary {
+        background-color: #3078ec;
+        border-color: #3078ec;
         
-        &.btn-primary {
-          background-color: #3078ec;
-          border-color: #3078ec;
-          
-          &:hover {
-            background-color: #2666cb;
-            border-color: #2666cb;
-          }
+        &:hover {
+          background-color: #2666cb;
+          border-color: #2666cb;
         }
       }
     }
   }
+}
