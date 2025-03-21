@@ -83,6 +83,7 @@ function App() {
             <HireGuide />
           </SemiPublicRoute>
         } />
+        <Route path="/hire-guide" element={<HireGuide />} />
         <Route path="/" element={<Navigate to="/home" />} />
 
         {/* Auth Routes - Prevent access when logged in */}

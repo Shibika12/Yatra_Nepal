@@ -30,6 +30,7 @@ export const Signup = () => {
     { value: "trekking", label: "Trekking Guide" },
     { value: "cultural", label: "Cultural Guide" },
     { value: "adventure", label: "Adventure Guide" },
+    { value: "wildlife", label: "Wildlife Guide" },
     { value: "nature", label: "Nature Guide" }
   ];
 

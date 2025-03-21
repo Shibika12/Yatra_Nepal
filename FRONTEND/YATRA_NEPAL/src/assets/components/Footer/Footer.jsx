@@ -1,66 +1,61 @@
-import React from 'react'
-import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa"; 
-import "./Footer.scss";
-export const Footer = () => {
+import React from 'react';
+import { Link } from 'react-router-dom';
+import './Footer.scss';
+import { FaFacebook, FaTwitter, FaInstagram, FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+
+const Footer = () => {
   return (
     <footer className="footer">
-    <div className="horizontal-line"></div>
-    <div className="footer-container">
-      <div className="footer-column">
-        <img
-          src="/src/assets/images/canva.png"
-          alt="Yatra Nepal Logo"
-          className="footer-logo"
-        />
-       
-      </div>
+      <div className="footer-content">
+        <div className="footer-section about">
+          <h3>Yatra Nepal</h3>
+          <p>Your trusted companion for exploring the beauty and culture of Nepal.</p>
+          <div className="contact-info">
+            <div className="contact-item">
+              <FaPhone />
+              <span>+977 981-234-5678</span>
+            </div>
+            <div className="contact-item">
+              <FaEnvelope />
+              <span>info@yatranepal.com</span>
+            </div>
+            <div className="contact-item">
+              <FaMapMarkerAlt />
+              <span>Thamel, Kathmandu, Nepal</span>
+            </div>
+          </div>
+        </div>
 
+        <div className="footer-section links">
+          <h3>Quick Links</h3>
+          <ul>
+            <li><Link to="/">Home</Link></li>
+            <li><Link to="/aboutus">About Us</Link></li>
+            <li><Link to="/hire-guide">Hire Guide</Link></li>
+          </ul>
+        </div>
 
-      <div className="footer-column">
-        <h4>Quick Links</h4>
-        <nav className="footer-nav">
-          <a href="/">Home</a>
-          <a href="/donate">About Us</a>
-          <a href="/request">Hire Guide</a>
-          <a href="/contact">Contact Us</a>
-        </nav>
-      </div>
-
-
-      <div className="footer-column">
-        <h4>Follow Us</h4>
-        <div className="footer-social">
-          <a
-            href="https://facebook.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FaFacebook />
-          </a>
-          <a
-            href="https://twitter.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FaTwitter />
-          </a>
-          <a
-            href="https://instagram.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FaInstagram />
-          </a>
+        <div className="footer-section social">
+          <h3>Follow Us</h3>
+          <div className="social-links">
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+              <FaFacebook />
+            </a>
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+              <FaTwitter />
+            </a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+              <FaInstagram />
+            </a>
+          </div>
         </div>
       </div>
-    </div>
 
-  
-    <div className="footer-copyright">
-      &copy; {new Date().getFullYear()} Yatra Nepal. All Rights Reserved.
-    </div>
-  </footer>
-);
+      <div className="footer-bottom">
+        <p>&copy; 2024 Yatra Nepal. All rights reserved.</p>
+      </div>
+    </footer>
+  );
 };
 
 export default Footer;
