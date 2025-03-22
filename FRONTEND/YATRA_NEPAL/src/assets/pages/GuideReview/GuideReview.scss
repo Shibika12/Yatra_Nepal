@@ -217,3 +217,182 @@
     }
   }
 }
+
+.guide-review-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 4rem 2rem;
+
+  .review-header {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 3rem;
+
+    h1 {
+      font-size: 2.5rem;
+      color: #2c3e50;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    p {
+      color: #576574;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+  }
+
+  .review-container {
+    max-width: 800px;
+    margin: 0 auto;
+
+    .review-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      position: relative;
+
+      .review-icon {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #007bff;
+        padding: 1rem;
+        border-radius: 50%;
+        color: white;
+        font-size: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+      }
+
+      form {
+        margin-top: 2rem;
+
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+
+        .form-group {
+          margin-bottom: 1.5rem;
+
+          label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-weight: 600;
+          }
+
+          input, textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+
+            &:focus {
+              outline: none;
+              border-color: #007bff;
+              box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            }
+          }
+
+          textarea {
+            min-height: 150px;
+            resize: vertical;
+          }
+        }
+
+        .rating-section {
+          margin-bottom: 1.5rem;
+          text-align: center;
+
+          label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-weight: 600;
+          }
+
+          .star-rating {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+
+            label {
+              cursor: pointer;
+              
+              input {
+                display: none;
+              }
+
+              .star {
+                font-size: 2.5rem;
+                transition: all 0.2s ease;
+
+                &:hover {
+                  transform: scale(1.2);
+                }
+              }
+            }
+          }
+        }
+
+        .submit-btn {
+          width: 100%;
+          padding: 1rem;
+          background: linear-gradient(to right, #007bff, #0056b3);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 1.1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-top: 1rem;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .guide-review-page {
+    padding: 2rem 1rem;
+
+    .review-header {
+      h1 {
+        font-size: 2rem;
+      }
+    }
+
+    .review-container {
+      .review-card {
+        padding: 1.5rem;
+
+        form {
+          .form-row {
+            grid-template-columns: 1fr;
+            gap: 0;
+          }
+
+          .star-rating label .star {
+            font-size: 2rem;
+          }
+        }
+      }
+    }
+  }
+}

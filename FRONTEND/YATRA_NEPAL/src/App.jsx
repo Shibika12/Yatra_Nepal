@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Reviews } from "./assets/pages/Reviews/Reviews";
+import Payment from './assets/pages/Payment/Payment';
 
 // Page imports
 import Home from "./assets/pages/Home/Home";
@@ -19,6 +19,7 @@ import AdminBlogs from "./assets/pages/AdminBlogs/AdminBlogs";
 import AdminReviews from "./assets/pages/AdminReviews/AdminReviews";
 import AdminSettings from "./assets/pages/AdminSettings/AdminSettings";
 import Blogs from './assets/pages/Blogs/Blogs';
+import GuideProfile from './assets/pages/GuideProfile/GuideProfile';
 
 
 // Protected Route Components
@@ -152,7 +153,9 @@ function App() {
 
         <Route path="/blogs" element={<Blogs />} />
 
-        <Route path="/reviews" element={<Reviews />} />
+        <Route path="/guide/:id" element={<GuideProfile />} />
+
+        <Route path="/payment" element={<Payment />} />
       </Routes>
     </BrowserRouter>
   );

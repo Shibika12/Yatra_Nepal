@@ -1,23 +1,44 @@
 import React from 'react'
-
 import { useNavigate } from 'react-router-dom';
 import Footer from '../../components/Footer/Footer';
 import Navbar from '../../components/Navbar/Navbar';
 import './Home.scss';
+import { FaStar, FaUserTie, FaHotel } from 'react-icons/fa';
 
-
-
-  
 export const Home = () => {
   const navigate = useNavigate();
     const destinations = [
         { src: "./src/assets/images/sway.jpg", title: "Swayambhunath Temple", location: "Kathmandu", className: "large" },
-        { src: "./src/assets/images/redpanda.jpeg", title: "Beautiful Village", location: "Kathmandu", className: "small" },
-        { src: "./src/assets/images/village.jpg", title: "Wildlife", location: "Kathmandu", className: "small" },
+        { src: "./src/assets/images/redpanda.jpeg", title: "Beautiful Wildlife", location: "Nepal", className: "small" },
+        { src: "./src/assets/images/village.jpg", title: "Amazing Village", location: "Hills", className: "small" },
         
-        { src: "./src/assets/images/rhino.jpg", title: "Snowy Peaks", location: "Kathmandu", className: "wide" }
+        { src: "./src/assets/images/rhino.jpg", title: "Rare Wildlife", location: "Chitwan", className: "wide" }
       ];
       
+    const services = [
+      {
+        id: 1,
+        title: "Rating the Guides",
+        description: "Rate and review your experience with our professional guides",
+        icon: <FaStar />,
+        path: "/guide-review"
+      },
+      {
+        id: 2,
+        title: "Hire Guide",
+        description: "Find and hire experienced guides for your journey",
+        icon: <FaUserTie />,
+        path: "/hire-guide"
+      },
+      {
+        id: 3,
+        title: "Book Hotel",
+        description: "Book comfortable stays at the best hotels",
+        icon: <FaHotel />,
+        path: "/book-hotel"
+      }
+    ];
+
     return (
         <>
           <Navbar />
@@ -29,7 +50,12 @@ export const Home = () => {
           Explore Nepal Your Way with Local Experts <br />
           <p>Explore Nepal's beauty with local guides for peaks, culture, and hidden gems.</p>
         </h1>
-        <button className="bookButton">Book Now</button>
+        <button 
+          className="book-now-btn"
+          onClick={() => navigate('/hire-guide')}
+        >
+          Book Now
+        </button>
       </div>
       
     </section>
@@ -41,26 +67,26 @@ export const Home = () => {
     
       <div className="service-container">
         <div className="service-card">
-          <img src="/src/assets/images/plane.jpg" alt="Airport Pickup" />
-          <h3>Airport Pickup</h3>
-          <p>We provide escort from the airport to your destination</p>
+          <img src="/src/assets/images/reviews.avif" alt="Rate the Guides" />
+          <h3>Rate the Guides</h3>
+          <p>We provide a platform to rate and review your experience with our guides</p>
         </div>
         <div className="service-card">
           <img src="/src/assets/images/booking.jpg" alt="Booking" />
           <h3>Booking</h3>
-          <p>We provide easy booking for your travel plans</p>
+          <p>We provide easy booking by chatting and planning your travel with our guides</p>
         </div>
         <div className="service-card">
           <img src="/src/assets/images/guide.jpg" alt="Best Guides" />
           <h3>Best Guides</h3>
-          <p>Explore Nepal with experienced local guides</p>
+          <p>Explore Nepal with experienced and verified local guides</p>
         </div>
       </div>
     </section>
     {/* Destination Section Starts */}
 
     <section className='destination-Section'>
-    <h2 >Travel With Yatra Nepal To</h2>
+    <h2 >Travel With Yatra Nepal</h2>
       <p>To our beautiful destinations</p>
     <div className="destination-grid">
         {destinations.map((item, index) => (
@@ -95,7 +121,12 @@ export const Home = () => {
     </div>
     <div className="blog-image">
       <img src="./src/assets/images/travel.jpg" alt="Hiker in nature"/>
-      <button className="read-more">READ MORE →</button>
+      <button 
+        className="read-more-btn"
+        onClick={() => navigate('/blogs')}
+      >
+        Read More
+      </button>
     </div>
   </div>
 </section>
@@ -136,17 +167,14 @@ export const Home = () => {
 </section>
 
 <section className="subscription">
-            <div className="subscription-content">
-              <h1>
-                Explore Nepal Your Way with Local Experts <br />
-                <p>
+    <div className="subscription-content">
+        <h1>
+            Explore Nepal Your Way with Local Experts <br />
+            <p>
                 Explore Nepal's beauty with local guides for peaks, culture, and hidden gems.
-              </p>
-              </h1>
-            </div>
-            <div className="subs">
-              <button  className="subscription-button">See More Highlights</button>
-            </div>
+            </p>
+        </h1>
+    </div>
 </section>
 <Footer/>
         </>

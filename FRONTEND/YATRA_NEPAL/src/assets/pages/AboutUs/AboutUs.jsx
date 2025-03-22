@@ -1,9 +1,9 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Footer from "../../components/Footer/Footer";
 import Navbar from "../../components/Navbar/Navbar";
 import { Container, Row, Col } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 // import Footer from "../../components/Footer/Footer";
 // import Navbar from "../../components/Navbar/Navbar";
@@ -48,12 +48,16 @@ const teamMembers = [
 ];
 const galleryImages = [
   "./src/assets/images/chum.jpg",
+  "./src/assets/images/Pokhara.jpg",
+  "./src/assets/images/kk.jpg",
   "./src/assets/images/phok.jpeg",
-  "./src/assets/images/tt.jpg",
+  "./src/assets/images/deer.jpeg",
+  "./src/assets/images/kanchan.jpg",
 ];
 const AboutUs = () => {
   const [startIndex, setStartIndex] = useState(0);
   const visibleMembers = 3; // Show 3 members at a time
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextSlide = () => {
     setStartIndex((prev) => (prev + 1) % teamMembers.length);
@@ -64,85 +68,117 @@ const AboutUs = () => {
       prev === 0 ? teamMembers.length - 1 : prev - 1
     );
   };
-    return (
-      <>
-<Navbar/>
-        <section className="about-section">
-          <div className="image-container">
-            <img src="./src/assets/images/yaks.jpg" alt="Yak in the mountains" />
-          </div>
-          <h1>ABOUT US</h1>
-          <div className="dia gonal-cut"></div>
-        </section>
-  
-        <section className="story-section">
-      <h2 className="story-title">STORY</h2>
-      <div className="story-content">
-        <div className="story-row">
-          <img src="./src/assets/images/sadhu.jpg" alt="Sadhu" />
-          <p>
-            From bustling city streets to serene mountain trails, our journey has been guided by a love for exploration 
-            and the belief that every traveler deserves a story worth sharing. With every booking and every adventure, 
-            we strive to connect people with the culture, history, and magic of their destinations.
-          </p>
-        </div>
-        <div className="story-row reverse">
-          
-          <img src="./src/assets/images/sadhu.jpg" alt="Monk walking in the forest" />
-          <p>
-            It started with a simple idea—to explore beyond the obvious and truly experience the soul of a destination. 
-            As avid travelers, we often found ourselves longing for more than just maps and itineraries. We craved stories, 
-            hidden gems, and authentic connections with the places we visited.
-            
-          </p>
-        </div>
-      </div>
-    </section>
-    <section className="about-Section">
-    <h1>Our Team</h1>
-    <div className="underline"></div>
-      <div className="image-Container">
-        <img src="./src/assets/images/kanchan.jpg" alt="Yak in the mountains" />
-      </div>
-      
-      <div className="diagonal-Cut"></div>
 
-      {/* Team Members */}
-      <Container className="team-container">
-        <FaChevronLeft className="arrow left-arrow" onClick={prevSlide} />
-        <Row className="justify-content-center">
-          {teamMembers.slice(startIndex, startIndex + visibleMembers).map((member, index) => (
-            <Col key={index} md={4} sm={6} xs={12} className="team-member">
-              <img src={member.img} alt={member.name} />
-              <h3>{member.name}</h3>
-              <p>{member.role}</p>
-            </Col>
-          ))}
-        </Row>
-        <FaChevronRight className="arrow right-arrow" onClick={nextSlide} />
-        
-      </Container>
-    </section>
-    <section className="gallery-section">
-      <h2>GALLERY</h2>
-      <div className="underline"></div>
-      <Container className="gallery-container">
-        <Row className="justify-content-center">
-          {galleryImages.map((image, index) => (
-            <Col key={index} md={5} sm={6} xs={12} className="gallery-item">
-              <img src={image} alt={`Gallery ${index + 1}`} />
-            </Col>
-          ))}
-        </Row>
-      </Container>
-      <button className="all-photos-btn">ALL PHOTOS</button>
-    </section>
-    <Footer/>
-  
-      </>
-    );
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1));
   };
-  
-  
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+  };
+
+  return (
+    <div className="about-us">
+      <Navbar />
+      <section className="about-section">
+        <div className="image-container">
+          <img src="./src/assets/images/yaks.jpg" alt="Yak in the mountains" />
+        </div>
+        <h1>ABOUT US</h1>
+        <div className="dia gonal-cut"></div>
+      </section>
+
+      <section className="story-section">
+        <h2>Our Story</h2>
+        <div className="underline"></div>
+        <div className="story-container">
+          <div className="story-box">
+            <div className="story-image">
+              <img src="./src/assets/images/sadhu.jpg" alt="Our Journey" />
+            </div>
+            <div className="story-text">
+              <h3>Our Journey</h3>
+              <p>From bustling city streets to serene mountain trails, our journey has been guided by a love for exploration 
+                and the belief that every traveler deserves a story worth sharing. With every booking and every adventure, 
+                we strive to connect people with the culture, history, and magic of their destinations.</p>
+            </div>
+          </div>
+          
+          <div className="story-box reverse">
+            <div className="story-image">
+              <img src="./src/assets/images/monk.jpg" alt="Our Mission" />
+            </div>
+            <div className="story-text">
+              <h3>Our Mission</h3>
+              <p>It started with a simple idea—to explore beyond the obvious and truly experience the soul of a destination. 
+                As avid travelers, we often found ourselves longing for more than just maps and itineraries. We craved stories, 
+                hidden gems, and authentic connections with the places we visited.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="about-Section">
+        <h1>Our Team</h1>
+        <div className="underline"></div>
+        <div className="image-Container">
+          <img src="./src/assets/images/kanchan.jpg" alt="Yak in the mountains" />
+        </div>
+        
+        <div className="diagonal-Cut"></div>
+
+        {/* Team Members */}
+        <Container className="team-container">
+          <FaChevronLeft className="arrow left-arrow" onClick={prevSlide} />
+          <Row className="justify-content-center">
+            {teamMembers.slice(startIndex, startIndex + visibleMembers).map((member, index) => (
+              <Col key={index} md={4} sm={6} xs={12} className="team-member">
+                <img src={member.img} alt={member.name} />
+                <h3>{member.name}</h3>
+                <p>{member.role}</p>
+              </Col>
+            ))}
+          </Row>
+          <FaChevronRight className="arrow right-arrow" onClick={nextSlide} />
+          
+        </Container>
+      </section>
+
+      <section className="slider-section">
+        <h2>Our Gallery</h2>
+        <div className="underline"></div>
+        <p className="gallery-description">Explore the beauty of Nepal through our lens</p>
+        <div className="slider-container">
+          <FaChevronLeft className="slider-arrow left" onClick={prevImage} />
+          <div className="slider-track">
+            {galleryImages.map((img, index) => (
+              <div 
+                key={index}
+                className={`slide ${index === currentImageIndex ? 'active' : ''}`}
+                style={{
+                  transform: `translateX(${(index - currentImageIndex) * 100}%)`
+                }}
+              >
+                <img src={img} alt={`Gallery image ${index + 1}`} />
+              </div>
+            ))}
+          </div>
+          <FaChevronRight className="slider-arrow right" onClick={nextImage} />
+          <div className="slider-dots">
+            {galleryImages.map((_, index) => (
+              <span
+                key={index}
+                className={`dot ${index === currentImageIndex ? 'active' : ''}`}
+                onClick={() => setCurrentImageIndex(index)}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+};
 
 export default AboutUs;
