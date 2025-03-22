@@ -1,72 +1,149 @@
 .Profile-container {
-    max-width: 1000px;
-    background: #f8f8f8;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    align-items: center;
-    margin-top: 20px;
-    margin-left: 450px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+
+  h1 {
+    color: #2D3748;
+    margin-bottom: 0.5rem;
   }
-  
-  
-  .profileImage {
-    margin-bottom: 15px;
-  
-    img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
+
+  .subtitle {
+    color: #718096;
+    margin-bottom: 2rem;
+  }
+
+  .settings-section {
+    background: #F7FAFC;
+    padding: 2rem;
+    border-radius: 8px;
+
+    h2 {
+      color: #2D3748;
+      margin-bottom: 1.5rem;
     }
   }
-  
-  .tab-Form {
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-  }
-  
-  .tab-Row {
-    display: flex;
-    gap: 60px;
-  
-    input {
-      flex: 1;
-      font-family: "lato",serif;
-      height: 30px;
-      border-radius: 10px;
+
+  .settings-form {
+    .form-group {
+      margin-bottom: 1.5rem;
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #4A5568;
+        font-weight: 500;
+      }
+
+      input, select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        font-size: 1rem;
+
+        &::placeholder {
+          color: #A0AEC0;
+        }
+
+        &:focus {
+          outline: none;
+          border-color: #4299E1;
+        }
+      }
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+
+      button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .save-btn {
+        background: #4299E1;
+        color: white;
+        border: none;
+
+        &:hover {
+          background: #3182CE;
+        }
+      }
+
+      .cancel-btn {
+        background: white;
+        color: #4A5568;
+        border: 1px solid #E2E8F0;
+
+        &:hover {
+          background: #F7FAFC;
+        }
+      }
     }
   }
-  
+}
+
+.profileImage {
+  margin-bottom: 15px;
+
+  img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+}
+
+.tab-Form {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.tab-Row {
+  display: flex;
+  gap: 60px;
+
   input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 14px;
+    flex: 1;
+    font-family: "lato",serif;
+    height: 30px;
+    border-radius: 10px;
   }
-  
-  .tab-Button {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-  }
-  
-  .tab-saveBtn, .tab-cancelBtn {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .tab-saveBtn {
-    background-color: #4CAF50;
-    color: white;
-  }
-  
-  .tab-cancelBtn {
-    background-color: #ccc;
-  }
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.tab-Button {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.tab-saveBtn, .tab-cancelBtn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tab-saveBtn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.tab-cancelBtn {
+  background-color: #ccc;
+}
   

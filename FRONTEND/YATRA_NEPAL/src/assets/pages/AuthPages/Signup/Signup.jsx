@@ -179,7 +179,8 @@ export const Signup = () => {
             <div className="divider">Or</div>
 
             <button type="button" className="google-signup">
-              <img src="/google-icon.png" alt="G" /> Signup with Google
+              <i className="bi bi-google"></i>
+              <span>Signup with Google</span>
             </button>
 
             <p className="login-link">

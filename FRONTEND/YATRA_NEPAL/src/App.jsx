@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Reviews } from "./assets/pages/Reviews/Reviews";
 
 // Page imports
 import Home from "./assets/pages/Home/Home";
@@ -17,6 +18,7 @@ import AdminUsers from "./assets/pages/AdminUsers/AdminUsers";
 import AdminBlogs from "./assets/pages/AdminBlogs/AdminBlogs";
 import AdminReviews from "./assets/pages/AdminReviews/AdminReviews";
 import AdminSettings from "./assets/pages/AdminSettings/AdminSettings";
+import Blogs from './assets/pages/Blogs/Blogs';
 
 
 // Protected Route Components
@@ -147,6 +149,10 @@ function App() {
             <AdminReviews />
           </ProtectedRoute>
         } />
+
+        <Route path="/blogs" element={<Blogs />} />
+
+        <Route path="/reviews" element={<Reviews />} />
       </Routes>
     </BrowserRouter>
   );

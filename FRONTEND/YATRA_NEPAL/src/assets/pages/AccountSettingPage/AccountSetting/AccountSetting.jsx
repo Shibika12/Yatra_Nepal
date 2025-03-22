@@ -25,32 +25,57 @@ export const AccountSetting = () => {
 
   return (
     <div className="Profile-container">
-      <h2>Edit Profile</h2>
-      <div className="profile.Image">
-        <img src="https://via.placeholder.com/100" alt="Profile" />
+      <h1>Account Settings</h1>
+      <p className="subtitle">Manage your personal information and preferences</p>
+
+      <div className="settings-section">
+        <h2>Personal Information</h2>
+        
+        <form onSubmit={handleSubmit} className="settings-form">
+          <div className="form-group">
+            <label>Full Name</label>
+            <input 
+              type="text" 
+              name="firstName" 
+              placeholder="Enter your full name"
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Email Address</label>
+            <input 
+              type="email" 
+              name="email" 
+              placeholder="Enter your email"
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Phone Number</label>
+            <input 
+              type="tel" 
+              name="phone" 
+              placeholder="Enter your phone number"
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Country</label>
+            <select name="country" onChange={handleChange}>
+              <option value="">Select your country</option>
+              {/* Add country options here */}
+            </select>
+          </div>
+
+          <div className="button-group">
+            <button type="submit" className="save-btn">Save Changes</button>
+            <button type="button" className="cancel-btn">Cancel</button>
+          </div>
+        </form>
       </div>
-      <form onSubmit={handleSubmit} className="tab-Form">
-        <div className="tab-Row">
-          <input type="text" name="firstName" placeholder="First Name" onChange={handleChange} />
-          <input type="text" name="lastName" placeholder="Last Name" onChange={handleChange} />
-        </div>
-        <div className="tab-Row">
-          <input type="email" name="email" placeholder="Email" onChange={handleChange} />
-          <input type="tel" name="phone" placeholder="Phone" onChange={handleChange} />
-        </div>
-        <div className="tab-Row">
-        <input type="text" name="address" placeholder="Address" onChange={handleChange} />
-        </div>
-        <div className="tab-Row">
-          <input type="text" name="country" placeholder="Country" onChange={handleChange} />
-          <input type="text" name="state" placeholder="State/Province" onChange={handleChange} />
-        </div>
-       
-        <div className="tab-Button">
-          <button type="submit" className="tab-saveBtn">Save Profile</button>
-          <button type="button" className="tab-cancelBtn">Cancel</button>
-        </div>
-      </form>
     </div>
   );
 };

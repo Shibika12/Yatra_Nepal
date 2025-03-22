@@ -1,15 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import "./TabNavigation.scss";
-
-// These components will be imported once they're created
-// import AccountSetting from "../../pages/AccountSetting/AccountSetting";
-// import BlogWriting from "../../pages/BlogWriting/BlogWriting";
-// import GuideReview from "../../pages/GuideReview/GuideReview";
+import AccountSetting from "../../pages/AccountSettingPage/AccountSetting/AccountSetting";
+import BlogWriting from "../../pages/BlogWriting/BlogWriting";
+import GuideReview from "../../pages/GuideReview/GuideReview";
 
 export const TabNavigation = () => {
-  const [activeTab, setActiveTab] = useState("Account Settings");
+  // Get the last active tab from sessionStorage or default to "Blog Writing"
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('activeTab') || "Blog Writing";
+  });
 
-  const tabs = [ "Guide Review", "Blog Writing", "Account Settings"];
+  // Save active tab to sessionStorage whenever it changes
+  useEffect(() => {
+    sessionStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
+  const tabs = ["Guide Review", "Blog Writing", "Account Settings"];
 
   return (
     <div>
@@ -29,9 +36,9 @@ export const TabNavigation = () => {
 
       {/* Content based on active tab */}
       <div className="tab-content">
-        {activeTab === "Guide Review" && <div>Guide Review Coming Soon</div>}
-        {activeTab === "Blog Writing" && <div>Blog Writing Coming Soon</div>}
-        {activeTab === "Account Settings" && <div>Account Settings Coming Soon</div>}
+        {activeTab === "Guide Review" && <GuideReview />}
+        {activeTab === "Blog Writing" && <BlogWriting />}
+        {activeTab === "Account Settings" && <AccountSetting />}
       </div>
     </div>
   );

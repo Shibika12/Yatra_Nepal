@@ -1,0 +1,238 @@
+.blogs-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+
+  .blogs-content {
+    flex: 1;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+
+    .blogs-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 3rem;
+      position: relative;
+
+      .back-button {
+        position: absolute;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(45deg, #228be6, #15aabf);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(34, 139, 230, 0.3);
+        transition: all 0.3s ease;
+
+        svg {
+          font-size: 20px;
+          transition: transform 0.3s ease;
+        }
+
+        &:hover {
+          background: linear-gradient(45deg, #1c7ed6, #1098ad);
+          box-shadow: 0 4px 12px rgba(34, 139, 230, 0.4);
+
+          svg {
+            transform: translateX(-3px);
+          }
+        }
+
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+
+      h1 {
+        flex: 1;
+        text-align: center;
+        font-size: 2.5rem;
+        color: #343a40;
+        margin: 0;
+        font-weight: 700;
+      }
+    }
+
+    .blogs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 2rem;
+      padding: 1rem 0;
+    }
+
+    .blog-card {
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-5px);
+      }
+
+      .blog-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+
+        .blog-info {
+          h2 {
+            font-size: 1.3rem;
+            color: #343a40;
+            margin: 0 0 0.5rem 0;
+            font-weight: 600;
+          }
+
+          .location {
+            font-size: 0.9rem;
+            color: #868e96;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+          }
+
+          .date {
+            font-size: 0.8rem;
+            color: #adb5bd;
+            margin: 0.3rem 0 0 0;
+          }
+        }
+
+        .more-options {
+          position: relative;
+
+          .more-btn {
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: #868e96;
+            transition: color 0.2s ease;
+
+            &:hover {
+              color: #495057;
+            }
+          }
+
+          .delete-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+
+            button {
+              padding: 0.8rem 1.5rem;
+              border: none;
+              background: none;
+              color: #e03131;
+              cursor: pointer;
+              white-space: nowrap;
+              width: 100%;
+              text-align: left;
+              transition: background 0.2s ease;
+
+              &:hover {
+                background: #fff5f5;
+              }
+            }
+          }
+        }
+      }
+
+      .blog-images {
+        margin-bottom: 1.5rem;
+        border-radius: 15px;
+        overflow: hidden;
+        
+        img {
+          width: 100%;
+          height: 250px;
+          object-fit: cover;
+          transition: transform 0.3s ease;
+
+          &:hover {
+            transform: scale(1.05);
+          }
+        }
+      }
+
+      .blog-content {
+        font-size: 1rem;
+        line-height: 1.7;
+        color: #495057;
+        margin-bottom: 1.5rem;
+      }
+
+      .blog-actions {
+        .like-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.7rem 1.2rem;
+          border: none;
+          background: #f8f9fa;
+          border-radius: 20px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          color: #495057;
+
+          .heart-icon {
+            transition: transform 0.2s ease;
+          }
+
+          &:hover {
+            background: #f3f4f6;
+            
+            .heart-icon {
+              transform: scale(1.2);
+              color: #e03131;
+            }
+          }
+
+          &.liked {
+            color: #e03131;
+            
+            .heart-icon {
+              fill: #e03131;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .blogs-page {
+    .blogs-content {
+      margin: 1rem;
+      padding: 0 1rem;
+
+      .blogs-header {
+        margin-bottom: 2rem;
+
+        h1 {
+          font-size: 2rem;
+        }
+      }
+
+      .blogs-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+} 

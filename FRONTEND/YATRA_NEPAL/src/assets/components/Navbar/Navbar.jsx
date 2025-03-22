@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Modal, Button } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./Navbar.scss";
@@ -71,7 +71,7 @@ const Navbar = () => {
         <nav className="navbar">
           <a onClick={() => handleNavigation("/home")}>Home</a>
           <a onClick={() => handleNavigation("/aboutus")}>About Us</a>
-          <Link to="/hire-guide">Hire Guide</Link>
+          <a onClick={() => handleNavigation("/hireguide")}>Hire Guide</a>
           <a onClick={() => handleNavigation("/profile")}>Profile</a>
           {user ? (
             <>
