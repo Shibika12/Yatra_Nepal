@@ -91,11 +91,7 @@ function App() {
         } />
 
         {/* Protected Guide Routes */}
-        <Route path="/guide/validation" element={
-          <AuthRoute>
-            <GuideValidationForm />
-          </AuthRoute>
-        } />
+        <Route path="/guide/validation" element={<GuideValidationForm />} />
         
         {/* Protected User Routes */}
         <Route path="/profile" element={

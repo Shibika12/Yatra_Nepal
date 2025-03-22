@@ -4,7 +4,7 @@ import "font-awesome/css/font-awesome.min.css";
 import { Row, Col } from "react-bootstrap";
 import Select from "react-select";
 import countryList from "react-select-country-list";
-import "./signup.scss";
+import "./Signup.scss";
 import axios from "axios";
 import Navbar from "../../../components/Navbar/Navbar";
 
@@ -71,18 +71,35 @@ export const Signup = () => {
         email: values.email,
         password: values.password,
         phone_number: values.phone_number,
-        nationality: values.nationality || null,
+        nationality: values.nationality || "Nepali",
         user_type: activeTab === "Tour Guide" ? "Guide" : "Tourist",
         guide_type: activeTab === "Tour Guide" ? values.guide_type : null,
         is_admin: 0,
-        is_verified: 0
+        is_verified: activeTab === "Tourist" ? 1 : 0
       };
 
-      const response = await axios.post("http://localhost:3002/auth/signup", signupData);
+      console.log('Sending signup data:', signupData);
+
+      const response = await axios.post(
+        "http://localhost:3002/auth/signup",
+        signupData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       
+      console.log('Server response:', response.data);
+
       if (response.data && response.data.userId) {
         if (activeTab === "Tour Guide") {
           localStorage.setItem('tempGuideId', response.data.userId.toString());
+          localStorage.setItem('tempGuideEmail', values.email);
+          localStorage.setItem('tempGuideName', values.name);
+          localStorage.setItem('tempGuidePhone', values.phone_number);
+          localStorage.setItem('tempGuideType', values.guide_type);
+          
           navigate("/guide/validation");
         } else {
           alert("Registration successful! Please login to continue.");
@@ -92,9 +109,24 @@ export const Signup = () => {
         throw new Error('No user ID received from server');
       }
     } catch (error) {
-      console.error('Signup error:', error.response || error);
-      const errorMessage = error.response?.data?.message || "Registration failed. Please try again.";
-      alert(errorMessage);
+      console.error('Detailed signup error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        fullError: error
+      });
+      
+      if (error.response?.status === 409 || 
+          error.response?.data?.includes('already exists') || 
+          error.message?.toLowerCase().includes('duplicate')) {
+        alert("This email is already registered. Please use a different email or login.");
+      } else if (error.response?.status === 400) {
+        alert(error.response.data?.message || "Please check your input data.");
+      } else if (error.response?.status === 500) {
+        alert("Server error. Please try again later.");
+      } else {
+        alert(error.response?.data?.message || "Registration failed. Please try again.");
+      }
     }
   };
 
@@ -113,7 +145,6 @@ export const Signup = () => {
         <div className="signup-form">
           <h1>Create an Account</h1>
 
-          {/* Toggle Buttons */}
           <div className="toggle-container">
             <div className={`toggle-button ${activeTab === "Tourist" ? "active" : ""}`}>
               <button onClick={() => handleTabChange("Tourist")}>Tourist</button>
@@ -125,7 +156,6 @@ export const Signup = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
-              {/* Left Column */}
               <div className="left-column">
                 <div className="form-group">
                   <input type="text" name="name" placeholder="Full Name" onChange={handleChanges} required />
@@ -138,7 +168,6 @@ export const Signup = () => {
                 </div>
               </div>
 
-              {/* Right Column */}
               <div className="right-column">
                 <div className="form-group">
                   <input type="tel" name="phone_number" placeholder="Contact Number" onChange={handleChanges} required />

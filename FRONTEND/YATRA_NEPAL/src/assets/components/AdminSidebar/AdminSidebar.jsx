@@ -1,17 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './AdminSidebar.scss';
 import { FaUsers, FaBlog, FaStar, FaUserCheck, FaSignOutAlt, FaTachometerAlt, FaCog } from 'react-icons/fa';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 
 const AdminSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutModal(false);
+  };
+
+  const handleLogoutConfirm = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     navigate('/login');
+    setShowLogoutModal(false);
   };
 
   const isActive = (path) => {
@@ -48,11 +60,32 @@ const AdminSidebar = () => {
           <FaCog />
           <span>Settings</span>
         </Link>
-        <button onClick={handleLogout} className="nav-item logout-btn">
+        <button onClick={handleLogoutClick} className="nav-item logout-btn">
           <FaSignOutAlt />
           <span>Logout</span>
         </button>
       </nav>
+      {/* Logout Confirmation Modal */}
+      <Modal 
+        show={showLogoutModal} 
+        onHide={handleLogoutCancel}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Logout</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to logout?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleLogoutCancel}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleLogoutConfirm}>
+            Confirm Logout
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
