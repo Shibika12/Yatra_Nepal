@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Button } from 'react-bootstrap';
+import LoginPrompt from '../LoginPrompt/LoginPrompt';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./Navbar.scss";
 
@@ -8,6 +9,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -47,9 +49,17 @@ const Navbar = () => {
       return;
     }
 
-    // Prevent admin from accessing profile
-    if (path === '/profile' && userRole === 'admin') {
-      navigate('/admin/dashboard');
+    // Handle profile navigation
+    if (path === '/profile') {
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
+      if (userRole === 'admin') {
+        navigate('/admin/dashboard');
+        return;
+      }
+      navigate(path);
       return;
     }
 
@@ -62,11 +72,12 @@ const Navbar = () => {
     navigate(path);
   };
 
-
   return (
     <div>
       <header className='Header'>
-        <h1 className="logoText" onClick={() => handleNavigation("/home")} style={{ cursor: 'pointer' }}>Yatra Nepal</h1>
+        <h1 className="logoText" onClick={() => handleNavigation("/home")}>
+          Yatra Nepal
+        </h1>
 
         <nav className="navbar">
           <a onClick={() => handleNavigation("/home")}>Home</a>
@@ -86,8 +97,6 @@ const Navbar = () => {
         </nav>
       </header>
 
-
-      {/* Logout Confirmation Modal */}
       <Modal 
         show={showLogoutModal} 
         onHide={handleLogoutCancel}
@@ -108,6 +117,10 @@ const Navbar = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {showLoginPrompt && (
+        <LoginPrompt onClose={() => setShowLoginPrompt(false)} />
+      )}
     </div>
   );
 };

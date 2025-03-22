@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Payment from './assets/pages/Payment/Payment';
+import AuthRoute from './utils/AuthRoute';
 
 // Page imports
 import Home from "./assets/pages/Home/Home";
@@ -21,29 +22,7 @@ import AdminSettings from "./assets/pages/AdminSettings/AdminSettings";
 import Blogs from './assets/pages/Blogs/Blogs';
 import GuideProfile from './assets/pages/GuideProfile/GuideProfile';
 
-
-// Protected Route Components
-const ProtectedRoute = ({ children, allowedRoles = [], restrictedRoles = [] }) => {
-  const isAuthenticated = localStorage.getItem("token");
-  const userRole = localStorage.getItem("userRole");
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-
-  // Check if user's role is restricted from this route
-  if (restrictedRoles.includes(userRole)) {
-    return <Navigate to="/admin/dashboard" />;
-  }
-
-  // Check if route requires specific roles
-  if (allowedRoles.length && !allowedRoles.includes(userRole)) {
-    return userRole === 'admin' ? <Navigate to="/admin/dashboard" /> : <Navigate to="/home" />;
-  }
-
-  return children;
-};
-
+// Route protection components
 const PublicRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem("token");
   const userRole = localStorage.getItem("userRole");
@@ -55,7 +34,6 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// Modified SemiPublicRoute to handle both logged-in and non-logged-in users
 const SemiPublicRoute = ({ children }) => {
   const userRole = localStorage.getItem("userRole");
   
@@ -63,6 +41,17 @@ const SemiPublicRoute = ({ children }) => {
     return <Navigate to="/admin/dashboard" />;
   }
   
+  return children;
+};
+
+const AdminRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem("token");
+  const userRole = localStorage.getItem("userRole");
+
+  if (!isAuthenticated || userRole !== 'admin') {
+    return <Navigate to="/login" />;
+  }
+
   return children;
 };
 
@@ -102,60 +91,81 @@ function App() {
         } />
 
         {/* Protected Guide Routes */}
-        <Route path="/guide/validation" element={<GuideValidationForm />} />
+        <Route path="/guide/validation" element={
+          <AuthRoute>
+            <GuideValidationForm />
+          </AuthRoute>
+        } />
         
-        {/* Protected User Routes - Explicitly restrict admin access */}
+        {/* Protected User Routes */}
         <Route path="/profile" element={
-          <ProtectedRoute restrictedRoles={['admin']}>
+          <AuthRoute>
             <Profile />
-          </ProtectedRoute>
+          </AuthRoute>
         } />
 
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <AdminRoute>
             <AdminDashboard />
-          </ProtectedRoute>
+          </AdminRoute>
         } />
 
-        <Route path="/admin/guide/:guideId" element={<GuideDetails />} />
+        <Route path="/admin/guide/:guideId" element={
+          <AdminRoute>
+            <GuideDetails />
+          </AdminRoute>
+        } />
 
         <Route path="/admin/overview" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <AdminRoute>
             <AdminOverview />
-          </ProtectedRoute>
+          </AdminRoute>
         } />
 
-       <Route path="/admin/settings" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+        <Route path="/admin/settings" element={
+          <AdminRoute>
             <AdminSettings />
-          </ProtectedRoute>
+          </AdminRoute>
         } />
-
 
         <Route path="/admin/users" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <AdminRoute>
             <AdminUsers />
-          </ProtectedRoute>
+          </AdminRoute>
         } />
 
         <Route path="/admin/blogs" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <AdminRoute>
             <AdminBlogs />
-          </ProtectedRoute>
+          </AdminRoute>
         } />
 
         <Route path="/admin/reviews" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <AdminRoute>
             <AdminReviews />
-          </ProtectedRoute>
+          </AdminRoute>
         } />
 
         <Route path="/blogs" element={<Blogs />} />
 
-        <Route path="/guide/:id" element={<GuideProfile />} />
+        <Route 
+          path="/guide/:id" 
+          element={
+            <AuthRoute>
+              <GuideProfile />
+            </AuthRoute>
+          } 
+        />
 
-        <Route path="/payment" element={<Payment />} />
+        <Route 
+          path="/payment" 
+          element={
+            <AuthRoute>
+              <Payment />
+            </AuthRoute>
+          } 
+        />
       </Routes>
     </BrowserRouter>
   );
