@@ -32,8 +32,11 @@ export const Login = () => {
         localStorage.setItem('user', JSON.stringify(response.data));
         
         // Redirect based on role
-        if (response.data.role === 'admin') {
+        const userRole = response.data.role.toLowerCase();
+        if (userRole === 'admin') {
           navigate('/admin/dashboard');
+        } else if (userRole === 'guide') {
+          navigate('/guide/dashboard');
         } else {
           navigate('/home');
         }

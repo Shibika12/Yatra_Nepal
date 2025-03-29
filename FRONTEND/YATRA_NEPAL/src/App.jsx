@@ -21,6 +21,9 @@ import AdminReviews from "./assets/pages/AdminReviews/AdminReviews";
 import AdminSettings from "./assets/pages/AdminSettings/AdminSettings";
 import Blogs from './assets/pages/Blogs/Blogs';
 import GuideProfile from './assets/pages/GuideProfile/GuideProfile';
+import GuideDashboard from './assets/pages/GuideDashboard/GuideDashboard';
+import GuideReviews from './assets/pages/GuideReviews/GuideReviews';
+import GuideMessages from './assets/pages/GuideMessages/GuideMessages';
 
 // Route protection components
 const PublicRoute = ({ children }) => {
@@ -49,6 +52,17 @@ const AdminRoute = ({ children }) => {
   const userRole = localStorage.getItem("userRole");
 
   if (!isAuthenticated || userRole !== 'admin') {
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+};
+
+const GuideRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem("token");
+  const userRole = localStorage.getItem("userRole")?.toLowerCase();
+
+  if (!isAuthenticated || userRole !== 'guide') {
     return <Navigate to="/login" />;
   }
 
@@ -162,6 +176,23 @@ function App() {
             </AuthRoute>
           } 
         />
+
+        {/* Guide Routes */}
+        <Route path="/guide/dashboard" element={
+          <GuideRoute>
+            <GuideDashboard />
+          </GuideRoute>
+        } />
+        <Route path="/guide/reviews" element={
+          <GuideRoute>
+            <GuideReviews />
+          </GuideRoute>
+        } />
+        <Route path="/guide/messages" element={
+          <GuideRoute>
+            <GuideMessages />
+          </GuideRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );

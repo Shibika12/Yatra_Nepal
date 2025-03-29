@@ -1,0 +1,154 @@
+.guide-dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f5f5;
+
+  .guide-dashboard-content {
+    flex: 1;
+    margin-left: 250px;
+    padding: 2rem;
+
+    h1 {
+      margin-bottom: 2rem;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+
+      .card-title {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #eee;
+      }
+    }
+
+    .profile-card {
+      .profile-image-container {
+        text-align: center;
+        margin-bottom: 2rem;
+
+        .profile-image {
+          width: 150px;
+          height: 150px;
+          border-radius: 50%;
+          object-fit: cover;
+          margin-bottom: 1rem;
+          border: 3px solid #fff;
+          box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+      }
+
+      .profile-info {
+        text-align: center;
+
+        h3 {
+          color: #2c3e50;
+          margin-bottom: 1rem;
+        }
+
+        p {
+          margin-bottom: 0.8rem;
+          color: #555;
+
+          strong {
+            color: #2c3e50;
+            margin-right: 0.5rem;
+          }
+        }
+
+        .edit-button {
+          margin-top: 1rem;
+          width: 100%;
+        }
+      }
+
+      .button-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+
+        button {
+          flex: 1;
+        }
+      }
+    }
+
+    .about-card, .specialization-card {
+      .card-body {
+        p {
+          color: #555;
+          line-height: 1.6;
+        }
+      }
+    }
+
+    .documents-card {
+      .documents-list {
+        .document-item {
+          padding: 1rem;
+          border-radius: 10px;
+          background: #f8f9fa;
+          margin-bottom: 1rem;
+
+          h4 {
+            color: #2c3e50;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+          }
+
+          .status {
+            font-weight: 600;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            display: inline-block;
+            margin: 0.5rem 0;
+
+            &.status-approved {
+              background: #d4edda;
+              color: #155724;
+            }
+
+            &.status-pending {
+              background: #fff3cd;
+              color: #856404;
+            }
+
+            &.status-rejected {
+              background: #f8d7da;
+              color: #721c24;
+            }
+          }
+
+          p {
+            margin-bottom: 0.5rem;
+            color: #666;
+          }
+        }
+      }
+    }
+  }
+
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: #666;
+  }
+
+  .error {
+    text-align: center;
+    padding: 2rem;
+    color: #721c24;
+    background: #f8d7da;
+    border-radius: 10px;
+    margin: 2rem auto;
+    max-width: 600px;
+  }
+} 
