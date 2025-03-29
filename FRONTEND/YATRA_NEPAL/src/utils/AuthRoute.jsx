@@ -14,6 +14,11 @@ const AuthRoute = ({ children }) => {
     return <Navigate to="/" />;
   }
 
+  // Prevent guides from accessing tourist pages
+  if (userRole === 'guide') {
+    return <Navigate to="/guide/dashboard" />;
+  }
+
   return children;
 };
 

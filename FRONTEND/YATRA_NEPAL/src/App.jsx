@@ -30,8 +30,12 @@ const PublicRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem("token");
   const userRole = localStorage.getItem("userRole");
   
-  if (isAuthenticated && userRole === 'admin') {
-    return <Navigate to="/admin/dashboard" />;
+  if (isAuthenticated) {
+    if (userRole === 'admin') {
+      return <Navigate to="/admin/dashboard" />;
+    } else if (userRole === 'guide') {
+      return <Navigate to="/guide/dashboard" />;
+    }
   }
   
   return children;
@@ -42,6 +46,8 @@ const SemiPublicRoute = ({ children }) => {
   
   if (userRole === 'admin') {
     return <Navigate to="/admin/dashboard" />;
+  } else if (userRole === 'guide') {
+    return <Navigate to="/guide/dashboard" />;
   }
   
   return children;
@@ -73,7 +79,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Semi-Public Routes - accessible to visitors and regular users, but not admins */}
+        {/* Semi-Public Routes - accessible to visitors and regular users, but not admins or guides */}
         <Route path="/home" element={
           <SemiPublicRoute>
             <Home />
@@ -89,7 +95,11 @@ function App() {
             <HireGuide />
           </SemiPublicRoute>
         } />
-        <Route path="/hire-guide" element={<HireGuide />} />
+        <Route path="/hire-guide" element={
+          <SemiPublicRoute>
+            <HireGuide />
+          </SemiPublicRoute>
+        } />
         <Route path="/" element={<Navigate to="/home" />} />
 
         {/* Auth Routes - Prevent access when logged in */}
@@ -104,14 +114,31 @@ function App() {
           </PublicRoute>
         } />
 
-        {/* Protected Guide Routes */}
-        <Route path="/guide/validation" element={<GuideValidationForm />} />
-        
         {/* Protected User Routes */}
         <Route path="/profile" element={
           <AuthRoute>
             <Profile />
           </AuthRoute>
+        } />
+
+        {/* Protected Guide Routes */}
+        <Route path="/guide/validation" element={<GuideValidationForm />} />
+        
+        {/* Guide Routes */}
+        <Route path="/guide/dashboard" element={
+          <GuideRoute>
+            <GuideDashboard />
+          </GuideRoute>
+        } />
+        <Route path="/guide/reviews" element={
+          <GuideRoute>
+            <GuideReviews />
+          </GuideRoute>
+        } />
+        <Route path="/guide/messages" element={
+          <GuideRoute>
+            <GuideMessages />
+          </GuideRoute>
         } />
 
         {/* Admin Routes */}
@@ -176,23 +203,6 @@ function App() {
             </AuthRoute>
           } 
         />
-
-        {/* Guide Routes */}
-        <Route path="/guide/dashboard" element={
-          <GuideRoute>
-            <GuideDashboard />
-          </GuideRoute>
-        } />
-        <Route path="/guide/reviews" element={
-          <GuideRoute>
-            <GuideReviews />
-          </GuideRoute>
-        } />
-        <Route path="/guide/messages" element={
-          <GuideRoute>
-            <GuideMessages />
-          </GuideRoute>
-        } />
       </Routes>
     </BrowserRouter>
   );

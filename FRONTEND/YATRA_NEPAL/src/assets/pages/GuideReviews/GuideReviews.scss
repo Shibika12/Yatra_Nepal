@@ -1,7 +1,7 @@
 .guide-reviews-container {
   display: flex;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #f8f9fa;
 
   .guide-reviews-content {
     flex: 1;
@@ -10,8 +10,22 @@
 
     h1 {
       margin-bottom: 2rem;
-      color: #333;
+      color: #2c3e50;
       font-weight: 600;
+      font-size: 2.2rem;
+      position: relative;
+      padding-bottom: 0.5rem;
+
+      &:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 4px;
+        background: #3498db;
+        border-radius: 2px;
+      }
     }
 
     .no-reviews {
@@ -33,10 +47,20 @@
       gap: 1.5rem;
 
       .review-card {
-        background: white;
         border: none;
         border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+        transition: transform 0.2s ease;
+        height: 100%;
+
+        &:hover {
+          transform: translateY(-5px);
+        }
+
+        .card-body {
+          padding: 1.5rem;
+        }
 
         .review-header {
           display: flex;
@@ -44,42 +68,74 @@
           align-items: flex-start;
           margin-bottom: 1rem;
 
-          .reviewer-info {
-            h4 {
-              margin: 0;
-              color: #2c3e50;
-              font-weight: 600;
+          .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+
+            .user-icon {
+              font-size: 2rem;
+              color: #3498db;
+              background: #ebf5fb;
+              padding: 0.8rem;
+              border-radius: 50%;
             }
 
-            .review-date {
-              color: #666;
-              font-size: 0.9rem;
-              margin: 0.3rem 0 0;
+            .user-details {
+              h5 {
+                margin: 0;
+                color: #2c3e50;
+                font-weight: 600;
+              }
+
+              .user-email {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                color: #7f8c8d;
+                font-size: 0.9rem;
+
+                .email-icon {
+                  color: #3498db;
+                }
+              }
             }
           }
 
-          .rating {
+          .review-date {
             display: flex;
-            gap: 0.2rem;
+            align-items: center;
+            gap: 0.5rem;
+            color: #7f8c8d;
+            font-size: 0.9rem;
 
-            svg {
-              font-size: 1.2rem;
-
-              &.star-filled {
-                color: #ffc107;
-              }
-
-              &.star-empty {
-                color: #e4e5e9;
-              }
+            .date-icon {
+              color: #3498db;
             }
+          }
+        }
+
+        .rating {
+          margin: 1rem 0;
+          display: flex;
+          gap: 0.3rem;
+
+          .star-filled {
+            color: #f1c40f;
+            font-size: 1.2rem;
+          }
+
+          .star-empty {
+            color: #bdc3c7;
+            font-size: 1.2rem;
           }
         }
 
         .review-text {
           color: #555;
-          line-height: 1.6;
+          line-height: 1.8;
           margin: 0;
+          font-size: 1rem;
         }
       }
     }
@@ -100,5 +156,12 @@
     border-radius: 10px;
     margin: 2rem auto;
     max-width: 600px;
+  }
+
+  @media (max-width: 768px) {
+    .guide-reviews-content {
+      margin-left: 0;
+      padding: 1rem;
+    }
   }
 } 
