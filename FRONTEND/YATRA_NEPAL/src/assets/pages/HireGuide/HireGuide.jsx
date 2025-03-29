@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
-import { FaStar, FaMapMarkerAlt, FaClock, FaSearch } from 'react-icons/fa';
+import { FaStar, FaMapMarkerAlt, FaClock, FaSearch, FaLanguage } from 'react-icons/fa';
 import './HireGuide.scss';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const HireGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
+  const [guides, setGuides] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Guide types
   const guideTypes = [
@@ -16,43 +20,44 @@ const HireGuide = () => {
     { value: 'cultural', label: 'Cultural Guide' },
     { value: 'adventure', label: 'Adventure Guide' },
     { value: 'wildlife', label: 'Wildlife Guide' },
-    { value: 'photography', label: 'Nature Guide' }
+    { value: 'nature', label: 'Nature Guide' }
   ];
 
-  const guides = [
-    {
-      id: 1,
-      name: "Jimmy Miller",
-      image: "https://images.unsplash.com/photo-1600486913747-55e5470d6f40",
-      experience: "5 years",
-      location: "Kathmandu",
-      rating: 5,
-      reviews: 15,
-      type: "trekking"
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-      experience: "7 years",
-      location: "Pokhara",
-      rating: 5,
-      reviews: 23,
-      type: "cultural"
-    },
-    {
-      id: 3,
-      name: "Michael Chen",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
-      experience: "4 years",
-      location: "Kathmandu",
-      rating: 4,
-      reviews: 12,
-      type: "adventure"
+  useEffect(() => {
+    fetchGuides();
+  }, []);
+
+  const fetchGuides = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:3002/api/guides/all-guides');
+      
+      // Transform the data to match our component's needs
+      const transformedGuides = response.data.map(guide => ({
+        id: guide.user_id,
+        name: guide.name,
+        image: guide.profile_pic ? `http://localhost:3002/${guide.profile_pic}` : 'https://via.placeholder.com/150',
+        experience: guide.years_of_experience ? `${guide.years_of_experience} years` : 'Not specified',
+        location: guide.nationality || 'Nepal',
+        languages: guide.languages || 'English',
+        type: guide.guide_type?.toLowerCase() || 'trekking',
+        about: guide.about || '',
+        specialization: guide.specialization || ''
+      }));
+
+      setGuides(transformedGuides);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching guides:', err);
+      setError('Failed to load guides. Please try again later.');
+      setLoading(false);
     }
-  ];
+  };
 
   const navigate = useNavigate();
+
+  if (loading) return <div className="loading">Loading guides...</div>;
+  if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="hire-guide-page">
@@ -134,7 +139,7 @@ const HireGuide = () => {
                 <div className="guide-details">
                   <h2>{guide.name}</h2>
                   <div className="guide-type">
-                    {guideTypes.find(t => t.value === guide.type)?.label}
+                    {guideTypes.find(t => t.value === guide.type)?.label || 'Guide'}
                   </div>
                   <div className="info-row">
                     <p>
@@ -148,17 +153,23 @@ const HireGuide = () => {
                       {guide.experience}
                     </p>
                   </div>
+                  <div className="info-row">
+                    <p>
+                      <FaLanguage />
+                      {guide.languages}
+                    </p>
+                  </div>
                   <div className="rating-row">
                     <div className="stars">
                       {[...Array(5)].map((_, index) => (
                         <FaStar
                           key={index}
                           className="star"
-                          color={index < guide.rating ? "#FFD700" : "#e4e5e9"}
+                          color={index < 5 ? "#FFD700" : "#e4e5e9"}
                         />
                       ))}
                     </div>
-                    <span className="reviews">({guide.reviews} reviews)</span>
+                    <span className="reviews">(New Guide)</span>
                   </div>
                 </div>
               </div>

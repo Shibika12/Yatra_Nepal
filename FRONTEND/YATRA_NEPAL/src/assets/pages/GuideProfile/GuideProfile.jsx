@@ -1,44 +1,69 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
 import { FaStar, FaMapMarkerAlt, FaClock, FaLanguage, FaArrowLeft, FaComment } from 'react-icons/fa';
+import axios from 'axios';
 import './GuideProfile.scss';
 
 const GuideProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [guide, setGuide] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reviews, setReviews] = useState([]);
 
-  // This would typically come from an API call using the id
-  const guide = {
-    id: 1,
-    name: "Jimmy Miller",
-    image: "https://images.unsplash.com/photo-1600486913747-55e5470d6f40",
-    experience: "5 years",
-    location: "Kathmandu",
-    rating: 5,
-    reviews: 15,
-    type: "Trekking Guide",
-    languages: ["English", "Nepali", "Hindi"],
-    specialization: "Annapurna Circuit, Everest Base Camp",
-    about: "Professional trekking guide with extensive experience in high-altitude expeditions. Certified in wilderness first aid and mountain rescue operations.",
-    reviews: [
-      {
-        id: 1,
-        user: "John Doe",
-        rating: 5,
-        date: "March 15, 2024",
-        comment: "Amazing experience! Jimmy is very knowledgeable and professional."
-      },
-      {
-        id: 2,
-        user: "Sarah Smith",
-        rating: 5,
-        date: "February 28, 2024",
-        comment: "Great guide, made our trek to EBC memorable and safe."
-      }
-    ]
+  useEffect(() => {
+    fetchGuideData();
+    fetchGuideReviews();
+  }, [id]);
+
+  const fetchGuideData = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3002/api/guides/guide-profile/${id}`);
+      const guideData = response.data;
+      
+      setGuide({
+        id: guideData.user_id,
+        name: guideData.name,
+        image: guideData.profile_pic ? `http://localhost:3002/${guideData.profile_pic}` : 'https://via.placeholder.com/150',
+        experience: guideData.years_of_experience ? `${guideData.years_of_experience} years` : 'Not specified',
+        location: guideData.nationality || 'Nepal',
+        rating: 5, // You can implement rating system later
+        type: guideData.guide_type || 'Guide',
+        languages: guideData.languages ? guideData.languages.split(',').map(lang => lang.trim()) : ['English'],
+        specialization: guideData.specialization || 'Not specified',
+        about: guideData.about || 'No information provided'
+      });
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching guide data:', err);
+      setError('Failed to load guide profile');
+      setLoading(false);
+    }
   };
+
+  const fetchGuideReviews = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3002/api/guides/reviews/${id}`);
+      setReviews(response.data.map(review => ({
+        id: review.review_id,
+        user: review.tourist_name,
+        rating: review.rating,
+        date: new Date(review.created_at).toLocaleDateString(),
+        comment: review.review_text
+      })));
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      // Don't set error state here as reviews are not critical
+      setReviews([]);
+    }
+  };
+
+  if (loading) return <div className="loading">Loading guide profile...</div>;
+  if (error) return <div className="error">{error}</div>;
+  if (!guide) return <div className="error">Guide not found</div>;
 
   return (
     <div className="guide-profile-page">
@@ -70,7 +95,7 @@ const GuideProfile = () => {
                       />
                     ))}
                   </div>
-                  <span>({guide.reviews.length} reviews)</span>
+                  <span>({reviews.length} reviews)</span>
                 </div>
                 <div className="details">
                   <p><FaMapMarkerAlt /> {guide.location}</p>
@@ -120,24 +145,28 @@ const GuideProfile = () => {
             <div className="reviews-section">
               <h2>Reviews</h2>
               <div className="reviews-list">
-                {guide.reviews.map(review => (
-                  <div key={review.id} className="review-card">
-                    <div className="review-header">
-                      <h3>{review.user}</h3>
-                      <div className="review-rating">
-                        {[...Array(5)].map((_, index) => (
-                          <FaStar
-                            key={index}
-                            className="star"
-                            color={index < review.rating ? "#FFD700" : "#e4e5e9"}
-                          />
-                        ))}
+                {reviews.length > 0 ? (
+                  reviews.map(review => (
+                    <div key={review.id} className="review-card">
+                      <div className="review-header">
+                        <h3>{review.user}</h3>
+                        <div className="review-rating">
+                          {[...Array(5)].map((_, index) => (
+                            <FaStar
+                              key={index}
+                              className="star"
+                              color={index < review.rating ? "#FFD700" : "#e4e5e9"}
+                            />
+                          ))}
+                        </div>
                       </div>
+                      <p className="review-date">{review.date}</p>
+                      <p className="review-comment">{review.comment}</p>
                     </div>
-                    <p className="review-date">{review.date}</p>
-                    <p className="review-comment">{review.comment}</p>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="no-reviews">No reviews yet</p>
+                )}
               </div>
             </div>
           </div>

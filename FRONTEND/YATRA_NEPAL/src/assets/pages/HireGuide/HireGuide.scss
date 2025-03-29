@@ -152,35 +152,31 @@
 
     .guides-list {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 2rem;
+      padding: 2rem;
 
       .guide-profile {
         background: white;
-        border-radius: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         overflow: hidden;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        
+        transition: transform 0.2s, box-shadow 0.2s;
+
         &:hover {
           transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
         .guide-image {
           width: 100%;
-          height: 220px;
+          height: 200px;
           overflow: hidden;
-          
+
           img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.3s ease;
-          }
-
-          &:hover img {
-            transform: scale(1.05);
           }
         }
 
@@ -188,53 +184,61 @@
           padding: 1.5rem;
 
           h2 {
-            font-size: 1.4rem;
+            margin: 0;
+            font-size: 1.5rem;
             color: #2c3e50;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
           }
 
           .guide-type {
-            color: #3498db;
+            color: #007bff;
             font-size: 0.9rem;
-            margin-bottom: 1rem;
-            font-weight: 500;
+            margin: 0.5rem 0;
+            text-transform: capitalize;
           }
 
           .info-row {
-            margin-bottom: 0.5rem;
-            
-            p {
-              color: #666;
-              font-size: 0.95rem;
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+            color: #666;
 
-              svg {
-                color: #3498db;
-              }
+            svg {
+              margin-right: 0.5rem;
+              color: #007bff;
             }
           }
 
           .rating-row {
-            margin-top: 1rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            margin-top: 1rem;
 
             .stars {
               display: flex;
-              gap: 3px;
-              
-              .star {
-                color: #f1c40f;
-              }
+              gap: 2px;
+              margin-right: 0.5rem;
             }
 
             .reviews {
               color: #666;
               font-size: 0.9rem;
+            }
+
+            .no-reviews {
+              color: #666;
+              font-size: 0.9rem;
+              font-style: italic;
+              background-color: #f8f9fa;
+              padding: 4px 8px;
+              border-radius: 4px;
+              border: 1px dashed #dee2e6;
+              display: inline-block;
+              margin-top: 0.25rem;
+              
+              &:hover {
+                background-color: #e9ecef;
+                border-color: #ced4da;
+              }
             }
           }
         }

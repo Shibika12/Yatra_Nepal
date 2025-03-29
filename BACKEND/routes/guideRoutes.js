@@ -142,20 +142,83 @@ router.put('/guide-profile/:userId', (req, res) => {
 });
 
 // Get guide reviews
-router.get('/reviews/:userId', async (req, res) => {
+router.get('/reviews/:guideId', async (req, res) => {
     try {
         const [reviews] = await pool.query(
-            `SELECT r.*, u.name as tourist_name
-             FROM Reviews r
-             JOIN Users u ON r.tourist_id = u.user_id
-             WHERE r.guide_id = ?
-             ORDER BY r.created_at DESC`,
-            [req.params.userId]
+            `SELECT 
+                r.review_id,
+                r.guide_id,
+                r.user_id,
+                r.rating,
+                r.review_text,
+                r.review_date,
+                u.name as reviewer_name,
+                u.email as reviewer_email,
+                u.nationality as reviewer_nationality
+             FROM guide_reviews r
+             JOIN Users u ON r.user_id = u.user_id
+             JOIN guides g ON r.guide_id = g.guide_id
+             WHERE g.user_id = ? AND u.user_type = 'Tourist'
+             ORDER BY r.review_date DESC`,
+            [req.params.guideId]
         );
-        
-        res.json(reviews);
+
+        // Transform the data to format dates and handle null values
+        const formattedReviews = reviews.map(review => ({
+            ...review,
+            review_date: new Date(review.review_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            reviewer_nationality: review.reviewer_nationality || 'Not specified'
+        }));
+
+        res.json(formattedReviews);
     } catch (error) {
         console.error('Error fetching guide reviews:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Add a new review
+router.post('/reviews', async (req, res) => {
+    try {
+        const { user_id, guide_user_id, rating, review_text } = req.body;
+
+        // Verify that the reviewer is a tourist
+        const [userCheck] = await pool.query(
+            'SELECT user_type FROM Users WHERE user_id = ?',
+            [user_id]
+        );
+
+        if (!userCheck.length || userCheck[0].user_type !== 'Tourist') {
+            return res.status(403).json({ message: 'Only tourists can submit reviews' });
+        }
+
+        // Get guide_id from guides table using guide's user_id
+        const [guideCheck] = await pool.query(
+            'SELECT guide_id FROM guides WHERE user_id = ?',
+            [guide_user_id]
+        );
+
+        if (!guideCheck.length) {
+            return res.status(404).json({ message: 'Guide not found' });
+        }
+
+        // Add the review
+        const [result] = await pool.query(
+            'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text) VALUES (?, ?, ?, ?)',
+            [guideCheck[0].guide_id, user_id, rating, review_text]
+        );
+
+        res.status(201).json({
+            message: 'Review added successfully',
+            review_id: result.insertId
+        });
+
+    } catch (error) {
+        console.error('Error adding review:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -222,6 +285,25 @@ router.post('/messages', async (req, res) => {
         res.status(201).json({ message: 'Message sent successfully' });
     } catch (error) {
         console.error('Error sending message:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all guides
+router.get('/all-guides', async (req, res) => {
+    try {
+        const [guides] = await pool.query(
+            `SELECT u.user_id, u.name, u.nationality, u.phone_number, u.guide_type,
+                    g.profile_pic, g.years_of_experience, g.languages, g.about, g.specialization
+             FROM Users u 
+             LEFT JOIN guides g ON u.user_id = g.user_id 
+             WHERE u.user_type = 'Guide' AND u.is_verified = 1
+             ORDER BY u.name ASC`
+        );
+
+        res.json(guides);
+    } catch (error) {
+        console.error('Error fetching all guides:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

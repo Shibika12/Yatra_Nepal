@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Footer from '../../components/Footer/Footer';
 import Navbar from '../../components/Navbar/Navbar';
 import './Home.scss';
-import { FaStar, FaUserTie, FaHotel } from 'react-icons/fa';
+import { FaStar, FaUserTie, FaHotel, FaCheckCircle, FaMapMarkedAlt, FaShieldAlt, FaUserCog } from 'react-icons/fa';
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -131,39 +131,47 @@ export const Home = () => {
   </div>
 </section>
 <section className="guides-container">
-  <h2 className="guides-title">MEET OUR GUIDES</h2>
+  <h2 className="guides-title">WHY CHOOSE OUR GUIDES</h2>
 
   <div className="guides-wrapper">
-    <div className="guide">
-      <img src="./src/assets/images/1.jpg" alt="Guide 1"/>
-      <div className="guide-info">
-        <h3>Emma Johnson</h3>
-        <p>Expert in mountain trekking</p>
+    <div className="guide-feature">
+      <div className="feature-icon">
+        <FaCheckCircle className="icon" />
+      </div>
+      <div className="feature-info">
+        <h3>Verified Professionals</h3>
+        <p>All our guides are thoroughly vetted and certified</p>
       </div>
     </div>
-    <div className="guide">
-      <img src="./src/assets/images/2.jpeg" alt="Guide 2"/>
-      <div className="guide-info">
-        <h3>Daniel Smith</h3>
-        <p>Wildlife and nature specialist</p>
+    <div className="guide-feature">
+      <div className="feature-icon">
+        <FaMapMarkedAlt className="icon" />
+      </div>
+      <div className="feature-info">
+        <h3>Local Expertise</h3>
+        <p>Deep knowledge of Nepal's culture and terrain</p>
       </div>
     </div>
-    <div className="guide ">
-      <img src="./src/assets/images/3.jpeg" alt="Guide 3"/>
-      <div className="guide-info">
-        <h3>Michael Lee</h3>
-        <p>Adventure sports expert</p>
+    <div className="guide-feature">
+      <div className="feature-icon">
+        <FaShieldAlt className="icon" />
+      </div>
+      <div className="feature-info">
+        <h3>Safety First</h3>
+        <p>Trained in safety protocols and emergency response</p>
       </div>
     </div>
-    <div className="guide">
-      <img src="./src/assets/images/4.avif" alt="Guide 4"/>
-      <div className="guide-info">
-        <h3>Sophia Williams</h3>
-        <p>History and culture guide</p>
+    <div className="guide-feature">
+      <div className="feature-icon">
+        <FaUserCog className="icon" />
+      </div>
+      <div className="feature-info">
+        <h3>Personalized Tours</h3>
+        <p>Customized experiences based on your interests</p>
       </div>
     </div>
   </div>
-  <button onClick={() => navigate("/hireguide")}className ="chat-btn">Hire Now</button>
+  <button onClick={() => navigate("/hire-guide")} className="book-now-btn">Find Your Guide</button>
 </section>
 
 <section className="subscription">
@@ -179,7 +187,6 @@ export const Home = () => {
 <Footer/>
         </>
       );
-      
 }
 
 export default Home
