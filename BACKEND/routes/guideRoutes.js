@@ -40,9 +40,11 @@ const upload = multer({
 router.get('/guide-profile/:userId', async (req, res) => {
     try {
         const [user] = await pool.query(
-            `SELECT u.*, gp.* 
+            `SELECT u.user_id, u.name, u.email, u.nationality, u.phone_number, 
+                    u.created_at, u.is_admin, u.is_verified, u.guide_type,
+                    g.profile_pic, g.years_of_experience, g.languages, g.about, g.specialization
              FROM Users u 
-             LEFT JOIN GuideProfiles gp ON u.user_id = gp.user_id 
+             LEFT JOIN guides g ON u.user_id = g.user_id 
              WHERE u.user_id = ? AND u.user_type = 'Guide'`,
             [req.params.userId]
         );
@@ -50,9 +52,6 @@ router.get('/guide-profile/:userId', async (req, res) => {
         if (!user.length) {
             return res.status(404).json({ message: 'Guide not found' });
         }
-
-        // Remove sensitive information
-        delete user[0].password;
 
         res.json(user[0]);
     } catch (error) {
@@ -83,38 +82,39 @@ router.put('/guide-profile/:userId', (req, res) => {
             // Begin transaction
             await pool.query('START TRANSACTION');
 
-            // Update user table
-            await pool.query(
-                'UPDATE Users SET name = ?, phone_number = ? WHERE user_id = ?',
-                [name, phone_number, userId]
-            );
+            // Update user table with basic info
+            if (name || phone_number) {
+                const updateUserQuery = 'UPDATE Users SET ? WHERE user_id = ?';
+                const updateUserData = {};
+                if (name) updateUserData.name = name;
+                if (phone_number) updateUserData.phone_number = phone_number;
+                await pool.query(updateUserQuery, [updateUserData, userId]);
+            }
 
-            // Check if guide profile exists
-            const [existingProfile] = await pool.query(
-                'SELECT * FROM GuideProfiles WHERE user_id = ?',
+            // Check if guide exists
+            const [existingGuide] = await pool.query(
+                'SELECT * FROM guides WHERE user_id = ?',
                 [userId]
             );
 
-            const profileData = {
-                years_of_experience: years_of_experience || null,
-                languages: languages || null,
-                about: about || null,
-                specialization: specialization || null,
-                profile_pic: req.file ? req.file.path : undefined
-            };
+            // Prepare guide data
+            const guideData = {};
+            if (years_of_experience) guideData.years_of_experience = years_of_experience;
+            if (languages) guideData.languages = languages;
+            if (about) guideData.about = about;
+            if (specialization) guideData.specialization = specialization;
+            if (req.file) guideData.profile_pic = req.file.path;
 
-            if (existingProfile.length > 0) {
-                // Update existing profile
-                const updateQuery = 'UPDATE GuideProfiles SET ? WHERE user_id = ?';
-                if (!req.file) {
-                    delete profileData.profile_pic; // Don't update profile_pic if no new file
+            if (existingGuide.length > 0) {
+                // Update existing guide
+                if (Object.keys(guideData).length > 0) {
+                    await pool.query('UPDATE guides SET ? WHERE user_id = ?', [guideData, userId]);
                 }
-                await pool.query(updateQuery, [profileData, userId]);
             } else {
-                // Create new profile
+                // Create new guide entry
                 await pool.query(
-                    'INSERT INTO GuideProfiles SET ?',
-                    { ...profileData, user_id: userId }
+                    'INSERT INTO guides SET ?',
+                    { ...guideData, user_id: userId }
                 );
             }
 
@@ -122,14 +122,15 @@ router.put('/guide-profile/:userId', (req, res) => {
 
             // Fetch and return updated profile
             const [updatedProfile] = await pool.query(
-                `SELECT u.*, gp.* 
+                `SELECT u.user_id, u.name, u.email, u.nationality, u.phone_number, 
+                        u.created_at, u.is_admin, u.is_verified, u.guide_type,
+                        g.profile_pic, g.years_of_experience, g.languages, g.about, g.specialization
                  FROM Users u 
-                 LEFT JOIN GuideProfiles gp ON u.user_id = gp.user_id 
+                 LEFT JOIN guides g ON u.user_id = g.user_id 
                  WHERE u.user_id = ?`,
                 [userId]
             );
 
-            delete updatedProfile[0].password;
             res.json(updatedProfile[0]);
 
         } catch (error) {

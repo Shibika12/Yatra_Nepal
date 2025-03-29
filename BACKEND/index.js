@@ -3,6 +3,7 @@ import cors from 'cors';
 import { connectToDatabase } from './lib/db.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import guideRoutes from './routes/guideRoutes.js';
 
 const app = express();
 
@@ -16,6 +17,7 @@ connectToDatabase()
     .then(() => {
         app.use('/auth', authRoutes);
         app.use('/admin', adminRoutes);
+        app.use('/api/guides', guideRoutes);
         
         const PORT = 3002;
         app.listen(PORT, () => {

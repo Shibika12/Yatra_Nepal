@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Modal, Badge } from 'react-bootstrap';
-import { FaUser, FaStar, FaLanguage, FaBriefcase, FaPhone, FaEnvelope, FaComments, FaPaperPlane, FaTimes, FaChartLine, FaUsers, FaEdit } from 'react-icons/fa';
+import { FaUser, FaStar, FaLanguage, FaBriefcase, FaPhone, FaEnvelope, FaEdit, FaComments, FaPaperPlane } from 'react-icons/fa';
+import axios from 'axios';
 import './GuideDashboard.scss';
 import GuideNavbar from '../../components/GuideNavbar/GuideNavbar';
 
@@ -9,9 +10,36 @@ const GuideDashboard = () => {
   const [isEditingAbout, setIsEditingAbout] = useState(false);
   const [isEditingSpecialization, setIsEditingSpecialization] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showChat, setShowChat] = useState(false);
-  const [newMessage, setNewMessage] = useState('');
   const [selectedChat, setSelectedChat] = useState(null);
+  const [newMessage, setNewMessage] = useState('');
+  
+  // Static data for messages
+  const [messages] = useState([
+    {
+      id: 1,
+      tourist: 'John Doe',
+      lastMessage: 'Hello, I\'m interested in booking a trek',
+      unread: true,
+      messages: [
+        { id: 1, sender: 'tourist', text: 'Hello, I\'m interested in booking a trek', time: '10:00 AM' },
+        { id: 2, sender: 'guide', text: 'Hi! Sure, I\'d be happy to help. What kind of trek are you looking for?', time: '10:05 AM' }
+      ]
+    },
+    {
+      id: 2,
+      tourist: 'Jane Smith',
+      lastMessage: 'What\'s the best time to visit?',
+      unread: false,
+      messages: [
+        { id: 1, sender: 'tourist', text: 'What\'s the best time to visit?', time: '9:30 AM' },
+        { id: 2, sender: 'guide', text: 'The best time for trekking is from March to May and September to November.', time: '9:35 AM' }
+      ]
+    }
+  ]);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -24,65 +52,70 @@ const GuideDashboard = () => {
     profile_pic: '/default-profile.png'
   });
 
-  // Sample data for dashboard stats
-  const [dashboardStats] = useState({
-    totalBookings: 45,
-    averageRating: 4.8,
-    totalEarnings: 25000
-  });
-
-  // Sample data for recent messages
-  const [recentMessages] = useState([
-    {
-      id: 1,
-      user_name: 'John Smith',
-      message: 'Hi, I\'m interested in booking a trek to Everest Base Camp.',
-      time: '10:30 AM',
-      unread: true,
-      messages: [
-        { text: 'Hi, I\'m interested in booking a trek to Everest Base Camp.', sender: 'user', time: '10:30 AM' },
-        { text: 'Hello John! I\'d be happy to help you with the Everest Base Camp trek. When are you planning to go?', sender: 'guide', time: '10:32 AM' }
-      ]
-    },
-    {
-      id: 2,
-      user_name: 'Sarah Johnson',
-      message: 'Could you tell me more about the Annapurna Circuit trek?',
-      time: '9:15 AM',
-      unread: false,
-      messages: [
-        { text: 'Could you tell me more about the Annapurna Circuit trek?', sender: 'user', time: '9:15 AM' }
-      ]
-    },
-    {
-      id: 3,
-      user_name: 'Michael Brown',
-      message: 'Thank you for the great experience last week!',
-      time: 'Yesterday',
-      unread: true,
-      messages: [
-        { text: 'Thank you for the great experience last week!', sender: 'user', time: 'Yesterday' }
-      ]
-    }
-  ]);
-
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone_number: user.phone_number || '',
-        guide_type: user.guide_type || '',
-        years_of_experience: user.years_of_experience || '',
-        languages: user.languages || '',
-        about: user.about || '',
-        specialization: user.specialization || '',
-        profile_pic: user.profile_pic || '/default-profile.png'
-      });
-    }
+    fetchGuideData();
   }, []);
+
+  const fetchGuideData = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      console.log('User data from localStorage:', userData);
+
+      if (!userData) {
+        setError('User not found. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      let user;
+      try {
+        user = JSON.parse(userData);
+        console.log('Parsed user data:', user);
+      } catch (parseError) {
+        console.error('Error parsing user data:', parseError);
+        setError('Error reading user data. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user is a guide
+      if (!user || user.user_type !== "Guide") {
+        setError('Access denied. Only guides can view this page.');
+        setLoading(false);
+        return;
+      }
+
+      const userId = user.user_id;
+      if (!userId) {
+        console.error('No user ID found in:', user);
+        setError('User ID not found. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Making API request with user ID:', userId);
+      const response = await axios.get(`http://localhost:3002/api/guides/guide-profile/${userId}`);
+      console.log('API response:', response.data);
+
+      if (response.data) {
+        setFormData(prev => ({
+          ...prev,
+          ...response.data,
+          profile_pic: response.data.profile_pic ? 
+            `http://localhost:3002/${response.data.profile_pic}` : 
+            '/default-profile.png'
+        }));
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching guide data:', err);
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+      }
+      setError(err.response?.data?.message || 'Failed to load guide profile. Please try again later.');
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -103,79 +136,204 @@ const GuideDashboard = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      const updatedUser = {
-        ...user,
-        ...formData
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setError('User not found. Please login again.');
+        return;
+      }
+
+      let user;
+      try {
+        user = JSON.parse(userData);
+      } catch (parseError) {
+        setError('Error reading user data. Please login again.');
+        return;
+      }
+
+      const userId = user.user_id;
+      if (!userId) {
+        setError('User ID not found. Please login again.');
+        return;
+      }
+
+      // Create FormData object for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('phone_number', formData.phone_number);
+      formDataToSend.append('years_of_experience', formData.years_of_experience);
+      formDataToSend.append('languages', formData.languages);
+      formDataToSend.append('about', formData.about);
+      formDataToSend.append('specialization', formData.specialization);
+      
+      if (profileImage) {
+        formDataToSend.append('profile_pic', profileImage);
+      }
+
+      await axios.put(
+        `http://localhost:3002/api/guides/guide-profile/${userId}`, 
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setIsEditing(false);
+      fetchGuideData();
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+      }
+      setError('Failed to update profile. Please try again later.');
     }
-    setIsEditing(false);
   };
 
-  const handleAboutSubmit = (e) => {
-    e.preventDefault();
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      const updatedUser = {
-        ...user,
-        about: formData.about
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+  const handleAboutUpdate = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setError('User not found. Please login again.');
+        return;
+      }
+
+      let user;
+      try {
+        user = JSON.parse(userData);
+      } catch (parseError) {
+        setError('Error reading user data. Please login again.');
+        return;
+      }
+
+      const userId = user.user_id;
+      if (!userId) {
+        setError('User ID not found. Please login again.');
+        return;
+      }
+
+      const formDataToSend = new FormData();
+      formDataToSend.append('about', formData.about);
+
+      await axios.put(
+        `http://localhost:3002/api/guides/guide-profile/${userId}`,
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setIsEditingAbout(false);
+      fetchGuideData();
+    } catch (err) {
+      console.error('Error updating about section:', err);
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+      }
+      setError('Failed to update about section. Please try again later.');
     }
-    setIsEditingAbout(false);
   };
 
-  const handleSpecializationSubmit = (e) => {
-    e.preventDefault();
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      const updatedUser = {
-        ...user,
-        specialization: formData.specialization
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+  const handleSpecializationUpdate = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setError('User not found. Please login again.');
+        return;
+      }
+
+      let user;
+      try {
+        user = JSON.parse(userData);
+      } catch (parseError) {
+        setError('Error reading user data. Please login again.');
+        return;
+      }
+
+      const userId = user.user_id;
+      if (!userId) {
+        setError('User ID not found. Please login again.');
+        return;
+      }
+
+      const formDataToSend = new FormData();
+      formDataToSend.append('specialization', formData.specialization);
+
+      await axios.put(
+        `http://localhost:3002/api/guides/guide-profile/${userId}`,
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setIsEditingSpecialization(false);
+      fetchGuideData();
+    } catch (err) {
+      console.error('Error updating specialization:', err);
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+      }
+      setError('Failed to update specialization. Please try again later.');
     }
-    setIsEditingSpecialization(false);
   };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (newMessage.trim() && selectedChat) {
-      // Here you would typically send the message to your backend
-      const updatedMessages = recentMessages.map(msg => {
-        if (msg.id === selectedChat.id) {
-          return {
-            ...msg,
-            messages: [
-              ...msg.messages,
-              { text: newMessage, sender: 'guide', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-            ]
-          };
-        }
-        return msg;
-      });
-      setNewMessage('');
-    }
+    if (!newMessage.trim()) return;
+
+    const updatedMessages = messages.map(chat => {
+      if (chat.id === selectedChat.id) {
+        return {
+          ...chat,
+          messages: [...chat.messages, {
+            id: chat.messages.length + 1,
+            sender: 'guide',
+            text: newMessage,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }]
+        };
+      }
+      return chat;
+    });
+
+    setMessages(updatedMessages);
+    setNewMessage('');
   };
 
-  const handleChatClick = (message) => {
-    setSelectedChat(message);
-    setShowChat(true);
-  };
+  if (loading) return <div className="loading">Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="guide-dashboard-container">
       <GuideNavbar />
       <div className="guide-dashboard-content">
         <Container>
-          <h1>Guide Profile</h1>
+          <Row className="mb-4">
+            <Col>
+              <h1>Guide Profile</h1>
+            </Col>
+            <Col xs="auto">
+              <Button 
+                variant="primary" 
+                onClick={() => setShowChat(true)}
+                className="messages-button"
+              >
+                <FaComments className="me-2" />
+                Messages
+                {messages.some(m => m.unread) && (
+                  <Badge bg="danger" className="ms-2">New</Badge>
+                )}
+              </Button>
+            </Col>
+          </Row>
           
           <Row>
             <Col md={4}>
@@ -230,7 +388,7 @@ const GuideDashboard = () => {
                       </Button>
                     </div>
                   ) : (
-                    <Form onSubmit={handleSubmit}>
+                    <Form onSubmit={handleProfileUpdate}>
                       <Form.Group className="mb-3">
                         <Form.Label>Name</Form.Label>
                         <Form.Control
@@ -287,64 +445,6 @@ const GuideDashboard = () => {
             </Col>
 
             <Col md={8}>
-              <Row>
-                <Col md={6}>
-                  <Card className="stats-card">
-                    <Card.Body>
-                      <div className="stats-grid">
-                        <div className="stat-item">
-                          <FaUsers className="stat-icon" />
-                          <div className="stat-info">
-                            <h4>{dashboardStats.totalBookings}</h4>
-                            <p>Total Bookings</p>
-                          </div>
-                        </div>
-                        <div className="stat-item">
-                          <FaStar className="stat-icon" />
-                          <div className="stat-info">
-                            <h4>{dashboardStats.averageRating}</h4>
-                            <p>Average Rating</p>
-                          </div>
-                        </div>
-                        <div className="stat-item">
-                          <FaChartLine className="stat-icon" />
-                          <div className="stat-info">
-                            <h4>₹{dashboardStats.totalEarnings}</h4>
-                            <p>Total Earnings</p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={6}>
-                  <Card className="messages-card">
-                    <Card.Body>
-                      <div className="messages-header">
-                        <h5>Recent Messages</h5>
-                        <Button variant="link" onClick={() => setShowChat(true)}>
-                          View All
-                        </Button>
-                      </div>
-                      <div className="messages-list">
-                        {recentMessages.map((msg) => (
-                          <div key={msg.id} className="message-item" onClick={() => handleChatClick(msg)}>
-                            <div className="message-content">
-                              <h6>{msg.user_name}</h6>
-                              <p>{msg.message}</p>
-                            </div>
-                            <div className="message-meta">
-                              <span className="time">{msg.time}</span>
-                              {msg.unread && <Badge bg="primary">New</Badge>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-
               <Card className="about-card">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center mb-3">
@@ -363,7 +463,7 @@ const GuideDashboard = () => {
                   {!isEditingAbout ? (
                     <p>{formData.about || 'No description added yet.'}</p>
                   ) : (
-                    <Form onSubmit={handleAboutSubmit}>
+                    <Form onSubmit={handleAboutUpdate}>
                       <Form.Group>
                         <Form.Control
                           as="textarea"
@@ -405,7 +505,7 @@ const GuideDashboard = () => {
                   {!isEditingSpecialization ? (
                     <p>{formData.specialization || 'No specialization added yet.'}</p>
                   ) : (
-                    <Form onSubmit={handleSpecializationSubmit}>
+                    <Form onSubmit={handleSpecializationUpdate}>
                       <Form.Group>
                         <Form.Control
                           as="textarea"
@@ -431,71 +531,74 @@ const GuideDashboard = () => {
             </Col>
           </Row>
         </Container>
-      </div>
 
-      {/* Chat Modal */}
-      <Modal show={showChat} onHide={() => setShowChat(false)} size="lg" className="chat-modal">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <FaComments className="me-2" />
-            {selectedChat ? `Chat with ${selectedChat.user_name}` : 'Messages'}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="chat-container">
-            <div className="chat-messages">
-              {selectedChat ? (
-                selectedChat.messages.map((msg, index) => (
-                  <div key={index} className={`chat-message ${msg.sender === 'guide' ? 'guide-message' : ''}`}>
+        {/* Chat Modal */}
+        <Modal show={showChat} onHide={() => setShowChat(false)} size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {selectedChat ? `Chat with ${selectedChat.tourist}` : 'Messages'}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {!selectedChat ? (
+              <div className="messages-list">
+                {messages.map(chat => (
+                  <div
+                    key={chat.id}
+                    className={`message-item ${chat.unread ? 'unread' : ''}`}
+                    onClick={() => setSelectedChat(chat)}
+                  >
                     <div className="message-avatar">
                       <FaUser />
                     </div>
                     <div className="message-content">
-                      <div className="message-header">
-                        <h6>{msg.sender === 'guide' ? formData.name : selectedChat.user_name}</h6>
-                        <span className="time">{msg.time}</span>
-                      </div>
-                      <p>{msg.text}</p>
+                      <h6>{chat.tourist}</h6>
+                      <p>{chat.lastMessage}</p>
                     </div>
+                    {chat.unread && <Badge bg="danger">New</Badge>}
                   </div>
-                ))
-              ) : (
-                recentMessages.map((msg) => (
-                  <div key={msg.id} className="chat-message" onClick={() => handleChatClick(msg)}>
-                    <div className="message-avatar">
-                      <FaUser />
-                    </div>
-                    <div className="message-content">
-                      <div className="message-header">
-                        <h6>{msg.user_name}</h6>
-                        <span className="time">{msg.time}</span>
+                ))}
+              </div>
+            ) : (
+              <div className="chat-container">
+                <div className="chat-messages">
+                  {selectedChat.messages.map(message => (
+                    <div
+                      key={message.id}
+                      className={`message ${message.sender === 'guide' ? 'sent' : 'received'}`}
+                    >
+                      <div className="message-bubble">
+                        <p>{message.text}</p>
+                        <small>{message.time}</small>
                       </div>
-                      <p>{msg.message}</p>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-            {selectedChat && (
-              <Form onSubmit={handleSendMessage} className="chat-input">
-                <Form.Group className="mb-0">
-                  <div className="input-group">
+                  ))}
+                </div>
+                <Form onSubmit={handleSendMessage} className="chat-input">
+                  <Form.Group className="d-flex">
                     <Form.Control
                       type="text"
-                      placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type your message..."
                     />
-                    <Button type="submit" variant="primary">
+                    <Button type="submit" variant="primary" className="ms-2">
                       <FaPaperPlane />
                     </Button>
-                  </div>
-                </Form.Group>
-              </Form>
+                  </Form.Group>
+                </Form>
+              </div>
             )}
-          </div>
-        </Modal.Body>
-      </Modal>
+          </Modal.Body>
+          {selectedChat && (
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setSelectedChat(null)}>
+                Back to Messages
+              </Button>
+            </Modal.Footer>
+          )}
+        </Modal>
+      </div>
     </div>
   );
 };
