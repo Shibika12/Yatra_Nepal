@@ -185,6 +185,14 @@ router.get('/reviews/:guideId', async (req, res) => {
 router.post('/reviews', async (req, res) => {
     try {
         const { user_id, guide_user_id, rating, review_text } = req.body;
+        console.log('Received review data:', { user_id, guide_user_id, rating, review_text });
+
+        if (!user_id || !guide_user_id || !rating || !review_text) {
+            return res.status(400).json({ 
+                message: 'Missing required fields',
+                received: { user_id, guide_user_id, rating, review_text }
+            });
+        }
 
         // Verify that the reviewer is a tourist
         const [userCheck] = await pool.query(
@@ -192,7 +200,13 @@ router.post('/reviews', async (req, res) => {
             [user_id]
         );
 
-        if (!userCheck.length || userCheck[0].user_type !== 'Tourist') {
+        console.log('User check result:', userCheck);
+
+        if (!userCheck.length) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (userCheck[0].user_type !== 'Tourist') {
             return res.status(403).json({ message: 'Only tourists can submit reviews' });
         }
 
@@ -201,6 +215,8 @@ router.post('/reviews', async (req, res) => {
             'SELECT guide_id FROM guides WHERE user_id = ?',
             [guide_user_id]
         );
+
+        console.log('Guide check result:', guideCheck);
 
         if (!guideCheck.length) {
             return res.status(404).json({ message: 'Guide not found' });
@@ -212,6 +228,8 @@ router.post('/reviews', async (req, res) => {
             [guideCheck[0].guide_id, user_id, rating, review_text]
         );
 
+        console.log('Review inserted:', result);
+
         res.status(201).json({
             message: 'Review added successfully',
             review_id: result.insertId
@@ -219,7 +237,11 @@ router.post('/reviews', async (req, res) => {
 
     } catch (error) {
         console.error('Error adding review:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 
