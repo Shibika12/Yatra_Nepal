@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS blog_images (
+    image_id INT PRIMARY KEY AUTO_INCREMENT,
+    blog_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (blog_id) REFERENCES blogs(blog_id) ON DELETE CASCADE
+); 

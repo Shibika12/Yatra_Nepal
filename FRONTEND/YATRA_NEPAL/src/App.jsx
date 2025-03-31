@@ -24,6 +24,7 @@ import GuideProfile from './assets/pages/GuideProfile/GuideProfile';
 import GuideDashboard from './assets/pages/GuideDashboard/GuideDashboard';
 import GuideReviews from './assets/pages/GuideReviews/GuideReviews';
 import GuideMessages from './assets/pages/GuideMessages/GuideMessages';
+import AllBlogs from './assets/pages/AllBlogs/AllBlogs';
 
 // Route protection components
 const PublicRoute = ({ children }) => {
@@ -184,7 +185,11 @@ function App() {
           </AdminRoute>
         } />
 
-        <Route path="/blogs" element={<Blogs />} />
+        <Route path="/blogs" element={
+          <AuthRoute>
+            <AllBlogs />
+          </AuthRoute>
+        } />
 
         <Route 
           path="/guide/:id" 

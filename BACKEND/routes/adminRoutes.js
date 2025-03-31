@@ -61,54 +61,42 @@ router.get('/pending-guides', async (req, res) => {
   try {
     console.log('Fetching pending guides...');
     const [guides] = await pool.query(`
-      SELECT 
+      SELECT DISTINCT
         u.user_id,
         u.name,
         u.email,
         u.phone_number,
         u.guide_type,
-        u.is_verified,
-        gd.guide_document_id,
-        gd.document_type,
-        gd.document_path,
-        gd.status,
-        gd.uploaded_at
+        u.nationality,
+        u.created_at,
+        u.is_verified
       FROM Users u
-      LEFT JOIN GuideDocuments gd ON u.user_id = gd.user_id
+      INNER JOIN GuideDocuments gd ON u.user_id = gd.user_id
       WHERE u.user_type = 'Guide' 
       AND gd.status = 'pending'
-      GROUP BY u.user_id
+      AND u.is_verified = 0
     `);
     
-    // Group documents by guide
-    const guidesWithDocs = guides.reduce((acc, curr) => {
-      if (!acc[curr.user_id]) {
-        acc[curr.user_id] = {
-          user_id: curr.user_id,
-          name: curr.name,
-          email: curr.email,
-          phone_number: curr.phone_number,
-          guide_type: curr.guide_type,
-          is_verified: curr.is_verified,
-          documents: []
-        };
-      }
-      
-      if (curr.guide_document_id) {
-        acc[curr.user_id].documents.push({
-          id: curr.guide_document_id,
-          type: curr.document_type,
-          path: curr.document_path,
-          status: curr.status,
-          uploaded_at: curr.uploaded_at
-        });
-      }
-      
-      return acc;
-    }, {});
+    // For each guide, fetch their documents
+    const guidesWithDocs = await Promise.all(guides.map(async (guide) => {
+      const [documents] = await pool.query(`
+        SELECT 
+          guide_document_id as id,
+          document_type as type,
+          document_path as path,
+          status,
+          uploaded_at
+        FROM GuideDocuments
+        WHERE user_id = ?
+      `, [guide.user_id]);
 
-    const formattedGuides = Object.values(guidesWithDocs);
-    res.json(formattedGuides);
+      return {
+        ...guide,
+        documents
+      };
+    }));
+
+    res.json(guidesWithDocs);
   } catch (error) {
     console.error('Error fetching pending guides:', error);
     res.status(500).json({ message: 'Server error' });
@@ -153,15 +141,11 @@ router.get('/pending-guides/:userId', async (req, res) => {
         u.name,
         u.email,
         u.phone_number,
+        u.nationality,
         u.guide_type,
-        u.is_verified,
-        gd.guide_document_id,
-        gd.document_type,
-        gd.document_path,
-        gd.status,
-        gd.uploaded_at
+        u.created_at,
+        u.is_verified
       FROM Users u
-      LEFT JOIN GuideDocuments gd ON u.user_id = gd.user_id
       WHERE u.user_id = ? AND u.user_type = 'Guide'
     `, [req.params.userId]);
 
@@ -169,20 +153,21 @@ router.get('/pending-guides/:userId', async (req, res) => {
       return res.status(404).json({ message: 'Guide not found' });
     }
 
+    // Fetch documents for this guide
+    const [documents] = await pool.query(`
+      SELECT 
+        guide_document_id as id,
+        document_type as type,
+        document_path as path,
+        status,
+        uploaded_at
+      FROM GuideDocuments
+      WHERE user_id = ?
+    `, [req.params.userId]);
+
     const guideWithDocs = {
-      user_id: guide[0].user_id,
-      name: guide[0].name,
-      email: guide[0].email,
-      phone_number: guide[0].phone_number,
-      guide_type: guide[0].guide_type,
-      is_verified: guide[0].is_verified,
-      documents: guide.map(doc => ({
-        id: doc.guide_document_id,
-        type: doc.document_type,
-        path: doc.document_path,
-        status: doc.status,
-        uploaded_at: doc.uploaded_at
-      })).filter(doc => doc.id)
+      ...guide[0],
+      documents
     };
 
     res.json(guideWithDocs);

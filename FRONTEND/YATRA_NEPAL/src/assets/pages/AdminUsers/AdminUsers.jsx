@@ -16,7 +16,7 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/admin/users');
+      const response = await axios.get('http://localhost:3002/api/admin/users');
       const tourists = response.data.filter(user => user.user_type === 'Tourist');
       setUsers(tourists);
       setLoading(false);

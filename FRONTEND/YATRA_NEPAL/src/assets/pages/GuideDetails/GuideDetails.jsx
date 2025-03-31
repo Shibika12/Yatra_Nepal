@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AdminSidebar from '../../components/AdminSidebar/AdminSidebar';
 import './GuideDetails.scss';
-import { FaUser, FaEnvelope, FaPhone, FaIdCard, FaFileAlt } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaPhone, FaIdCard, FaFileAlt, FaGlobe, FaCalendarAlt } from 'react-icons/fa';
 
 const GuideDetails = () => {
   const { guideId } = useParams();
@@ -15,14 +15,9 @@ const GuideDetails = () => {
     const fetchGuideDetails = async () => {
       try {
         console.log('Fetching details for guide ID:', guideId);
-        
-        const response = await axios.get(`http://localhost:3002/admin/pending-guides/${guideId}`);
-        
-        console.log('API Response:', response.data);
-        
-        if (response.data) {
-          setGuide(response.data);
-        }
+        const response = await axios.get(`http://localhost:3002/api/admin/pending-guides/${guideId}`);
+        console.log('Guide details:', response.data);
+        setGuide(response.data);
       } catch (error) {
         console.error('Error fetching guide details:', error);
         if (error.response) {
@@ -40,7 +35,7 @@ const GuideDetails = () => {
 
   const handleApproval = async (status) => {
     try {
-      await axios.post(`http://localhost:3002/admin/guide-approval`, {
+      await axios.post(`http://localhost:3002/api/admin/guide-approval`, {
         guideId,
         status
       });
@@ -52,14 +47,35 @@ const GuideDetails = () => {
     }
   };
 
-  const viewDocument = (documentPath) => {
-    // Remove the extra 'uploads' from the path
-    const cleanPath = documentPath.replace('uploads/', '');
-    window.open(`http://localhost:3002/${cleanPath}`, '_blank');
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!guide) return <div className="error">Guide not found (ID: {guideId})</div>;
+  const viewDocument = (documentPath) => {
+    window.open(`http://localhost:3002/${documentPath}`, '_blank');
+  };
+
+  if (loading) return (
+    <div className="admin-layout">
+      <AdminSidebar />
+      <div className="guide-details-page">
+        <div className="loading">Loading...</div>
+      </div>
+    </div>
+  );
+
+  if (!guide) return (
+    <div className="admin-layout">
+      <AdminSidebar />
+      <div className="guide-details-page">
+        <div className="error">Guide not found (ID: {guideId})</div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="admin-layout">
@@ -71,7 +87,7 @@ const GuideDetails = () => {
           </button>
           
           <div className="guide-header">
-            <h1>Guide Details</h1>
+            <h1>Guide Application Details</h1>
             <div className="status-badge pending">Pending Approval</div>
           </div>
 
@@ -105,6 +121,20 @@ const GuideDetails = () => {
                   <p>{guide.guide_type}</p>
                 </div>
               </div>
+              <div className="info-item">
+                <FaGlobe className="icon" />
+                <div className="info-content">
+                  <label>Nationality</label>
+                  <p>{guide.nationality || 'Not specified'}</p>
+                </div>
+              </div>
+              <div className="info-item">
+                <FaCalendarAlt className="icon" />
+                <div className="info-content">
+                  <label>Applied On</label>
+                  <p>{formatDate(guide.created_at)}</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -114,10 +144,12 @@ const GuideDetails = () => {
               <div className="documents-grid">
                 {guide.documents.map((doc, index) => (
                   <div key={index} className="document-card">
+                    <FaFileAlt className="doc-icon" />
                     <h3>{doc.type}</h3>
-                    <a href={`http://localhost:3002/${doc.path}`} target="_blank" rel="noopener noreferrer">
+                    <button onClick={() => viewDocument(doc.path)}>
                       View Document
-                    </a>
+                    </button>
+                    <p className="status">Status: {doc.status}</p>
                   </div>
                 ))}
               </div>

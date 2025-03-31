@@ -17,7 +17,7 @@ export const AdminDashboard = () => {
 
   const fetchGuides = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/admin/pending-guides');
+      const response = await axios.get('http://localhost:3002/api/admin/pending-guides');
       setGuides(response.data);
       setLoading(false);
     } catch (error) {
