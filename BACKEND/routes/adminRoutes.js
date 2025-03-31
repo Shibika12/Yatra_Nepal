@@ -1,5 +1,6 @@
 import express from 'express';
 import pool from '../lib/db.js';
+import fs from 'fs';
 
 const router = express.Router();
 
@@ -214,6 +215,48 @@ router.get('/guide-reviews', async (req, res) => {
             error: error.message
         });
     }
+});
+
+// Delete a blog post and its associated images
+router.delete('/blogs/:blogId', async (req, res) => {
+  try {
+    const blogId = req.params.blogId;
+
+    await pool.query('START TRANSACTION');
+
+    // Get the image paths before deleting
+    const [images] = await pool.query(
+      'SELECT image_path FROM blog_images WHERE blog_id = ?',
+      [blogId]
+    );
+
+    // Delete the blog likes
+    await pool.query('DELETE FROM blog_likes WHERE blog_id = ?', [blogId]);
+
+    // Delete the blog images from database
+    await pool.query('DELETE FROM blog_images WHERE blog_id = ?', [blogId]);
+
+    // Delete the blog post
+    await pool.query('DELETE FROM blogs WHERE blog_id = ?', [blogId]);
+
+    await pool.query('COMMIT');
+
+    // Delete the actual image files
+    images.forEach(image => {
+      const filePath = image.image_path;
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error(`Error deleting file ${filePath}:`, err);
+      }
+    });
+
+    res.json({ message: 'Blog deleted successfully' });
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    console.error('Error deleting blog:', error);
+    res.status(500).json({ message: 'Error deleting blog' });
+  }
 });
 
 export default router; 
