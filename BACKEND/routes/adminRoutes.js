@@ -80,8 +80,6 @@ router.get('/pending-guides', async (req, res) => {
       GROUP BY u.user_id
     `);
     
-    console.log('Query results:', guides);
-    
     // Group documents by guide
     const guidesWithDocs = guides.reduce((acc, curr) => {
       if (!acc[curr.user_id]) {
@@ -110,7 +108,6 @@ router.get('/pending-guides', async (req, res) => {
     }, {});
 
     const formattedGuides = Object.values(guidesWithDocs);
-    console.log('Formatted guides:', formattedGuides);
     res.json(formattedGuides);
   } catch (error) {
     console.error('Error fetching pending guides:', error);
@@ -147,7 +144,7 @@ router.post('/guide-approval', async (req, res) => {
   }
 });
 
-// Add this new route
+// Get guide details by ID
 router.get('/pending-guides/:userId', async (req, res) => {
   try {
     const [guide] = await pool.query(`
@@ -185,7 +182,7 @@ router.get('/pending-guides/:userId', async (req, res) => {
         path: doc.document_path,
         status: doc.status,
         uploaded_at: doc.uploaded_at
-      })).filter(doc => doc.id) // Filter out null documents
+      })).filter(doc => doc.id)
     };
 
     res.json(guideWithDocs);
@@ -193,6 +190,45 @@ router.get('/pending-guides/:userId', async (req, res) => {
     console.error('Error fetching guide details:', error);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// Get all guide reviews
+router.get('/guide-reviews', async (req, res) => {
+    try {
+        const [reviews] = await pool.query(`
+            SELECT 
+                gr.review_id,
+                gr.guide_id,
+                gr.user_id as tourist_id,
+                gr.rating,
+                gr.review_text,
+                gr.review_date,
+                g.user_id as guide_user_id,
+                ug.name as guide_name,
+                ug.email as guide_email,
+                ut.name as tourist_name,
+                ut.email as tourist_email
+            FROM guide_reviews gr
+            JOIN guides g ON gr.guide_id = g.guide_id
+            JOIN Users ug ON g.user_id = ug.user_id
+            JOIN Users ut ON gr.user_id = ut.user_id
+            ORDER BY gr.review_date DESC, gr.review_id DESC
+        `);
+
+        // Transform the data and handle null values
+        const formattedReviews = reviews.map(review => ({
+            ...review,
+            review_date: review.review_date ? new Date(review.review_date).toISOString() : null
+        }));
+
+        res.json(formattedReviews);
+    } catch (error) {
+        console.error('Error fetching all guide reviews:', error);
+        res.status(500).json({ 
+            message: 'Failed to fetch reviews',
+            error: error.message
+        });
+    }
 });
 
 export default router; 

@@ -144,40 +144,98 @@ router.put('/guide-profile/:userId', (req, res) => {
 // Get guide reviews
 router.get('/reviews/:guideId', async (req, res) => {
     try {
-        const [reviews] = await pool.query(
-            `SELECT 
-                r.review_id,
-                r.guide_id,
-                r.user_id,
-                r.rating,
-                r.review_text,
-                r.review_date,
+        console.log('Fetching reviews for guide user_id:', req.params.guideId);
+        
+        // First check if the user exists and is a guide
+        const userCheckQuery = 'SELECT user_id, user_type FROM Users WHERE user_id = ?';
+        console.log('Executing user check query:', userCheckQuery);
+        
+        const [userCheck] = await pool.query(userCheckQuery, [req.params.guideId])
+            .catch(err => {
+                console.error('Error checking user:', err);
+                throw new Error('Failed to check user details');
+            });
+
+        if (!userCheck.length) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (userCheck[0].user_type !== 'Guide') {
+            return res.status(400).json({ message: 'User is not a guide' });
+        }
+
+        // Get guide_id from guides table using user_id
+        const guideCheckQuery = 'SELECT guide_id FROM guides WHERE user_id = ?';
+        const [guideResult] = await pool.query(guideCheckQuery, [req.params.guideId])
+            .catch(err => {
+                console.error('Error checking guide:', err);
+                throw new Error('Failed to check guide details');
+            });
+
+        let guideId;
+        if (!guideResult.length) {
+            // If guide entry doesn't exist, create one
+            const insertGuideQuery = 'INSERT INTO guides (user_id) VALUES (?)';
+            const [insertResult] = await pool.query(insertGuideQuery, [req.params.guideId])
+                .catch(err => {
+                    console.error('Error creating guide entry:', err);
+                    throw new Error('Failed to create guide entry');
+                });
+            guideId = insertResult.insertId;
+        } else {
+            guideId = guideResult[0].guide_id;
+        }
+
+        // First, try to add review_date column if it doesn't exist
+        try {
+            await pool.query(`
+                ALTER TABLE guide_reviews 
+                ADD COLUMN IF NOT EXISTS review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            `);
+        } catch (err) {
+            console.error('Error adding review_date column:', err);
+            // Continue even if this fails
+        }
+
+        // Get the reviews using the guide_id
+        const reviewsQuery = `
+            SELECT 
+                gr.review_id,
+                gr.guide_id,
+                gr.user_id,
+                gr.rating,
+                gr.review_text,
+                gr.review_date,
                 u.name as reviewer_name,
                 u.email as reviewer_email,
                 u.nationality as reviewer_nationality
-             FROM guide_reviews r
-             JOIN Users u ON r.user_id = u.user_id
-             JOIN guides g ON r.guide_id = g.guide_id
-             WHERE g.user_id = ? AND u.user_type = 'Tourist'
-             ORDER BY r.review_date DESC`,
-            [req.params.guideId]
-        );
+            FROM guide_reviews gr
+            JOIN Users u ON gr.user_id = u.user_id
+            WHERE gr.guide_id = ?
+            ORDER BY gr.review_date DESC, gr.review_id DESC
+        `;
 
-        // Transform the data to format dates and handle null values
+        const [reviews] = await pool.query(reviewsQuery, [guideId])
+            .catch(err => {
+                console.error('Error executing reviews query:', err);
+                throw new Error(`Failed to fetch reviews: ${err.message}`);
+            });
+
+        // Transform the data and handle null values
         const formattedReviews = reviews.map(review => ({
             ...review,
-            review_date: new Date(review.review_date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            }),
-            reviewer_nationality: review.reviewer_nationality || 'Not specified'
+            reviewer_nationality: review.reviewer_nationality || 'Not specified',
+            review_date: review.review_date ? new Date(review.review_date).toISOString() : null
         }));
 
         res.json(formattedReviews);
     } catch (error) {
-        console.error('Error fetching guide reviews:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error in /reviews/:guideId endpoint:', error);
+        res.status(500).json({ 
+            message: 'Failed to fetch reviews',
+            error: error.message,
+            guide_user_id: req.params.guideId
+        });
     }
 });
 
@@ -185,7 +243,6 @@ router.get('/reviews/:guideId', async (req, res) => {
 router.post('/reviews', async (req, res) => {
     try {
         const { user_id, guide_user_id, rating, review_text } = req.body;
-        console.log('Received review data:', { user_id, guide_user_id, rating, review_text });
 
         if (!user_id || !guide_user_id || !rating || !review_text) {
             return res.status(400).json({ 
@@ -199,8 +256,6 @@ router.post('/reviews', async (req, res) => {
             'SELECT user_type FROM Users WHERE user_id = ?',
             [user_id]
         );
-
-        console.log('User check result:', userCheck);
 
         if (!userCheck.length) {
             return res.status(404).json({ message: 'User not found' });
@@ -216,10 +271,19 @@ router.post('/reviews', async (req, res) => {
             [guide_user_id]
         );
 
-        console.log('Guide check result:', guideCheck);
-
         if (!guideCheck.length) {
             return res.status(404).json({ message: 'Guide not found' });
+        }
+
+        // First, try to add review_date column if it doesn't exist
+        try {
+            await pool.query(`
+                ALTER TABLE guide_reviews 
+                ADD COLUMN IF NOT EXISTS review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            `);
+        } catch (err) {
+            console.error('Error adding review_date column:', err);
+            // Continue even if this fails
         }
 
         // Add the review
@@ -227,8 +291,6 @@ router.post('/reviews', async (req, res) => {
             'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text) VALUES (?, ?, ?, ?)',
             [guideCheck[0].guide_id, user_id, rating, review_text]
         );
-
-        console.log('Review inserted:', result);
 
         res.status(201).json({
             message: 'Review added successfully',
@@ -239,8 +301,7 @@ router.post('/reviews', async (req, res) => {
         console.error('Error adding review:', error);
         res.status(500).json({ 
             message: 'Server error', 
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            error: error.message
         });
     }
 });

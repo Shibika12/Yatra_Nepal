@@ -16,7 +16,7 @@ app.use('/uploads', express.static('uploads'));
 connectToDatabase()
     .then(() => {
         app.use('/auth', authRoutes);
-        app.use('/admin', adminRoutes);
+        app.use('/api/admin', adminRoutes);
         app.use('/api/guides', guideRoutes);
         
         const PORT = 3002;
