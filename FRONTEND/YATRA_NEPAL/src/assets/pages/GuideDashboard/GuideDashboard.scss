@@ -246,6 +246,7 @@
       align-items: center;
       padding: 0.5rem 1rem;
       font-size: 1rem;
+      margin-top: 20px;
       
       .badge {
         font-size: 0.75rem;
@@ -381,4 +382,197 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.availability-calendar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+
+
+  .react-calendar {
+    width: 100%;
+    max-width: 600px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    background: white;
+
+    button {
+      margin: 0;
+      border: 0;
+      outline: none;
+
+      &:enabled:hover {
+        cursor: pointer;
+        background-color: #f8f9fa;
+      }
+    }
+
+    &__navigation {
+      height: 44px;
+      margin-bottom: 1rem;
+
+      button {
+        min-width: 44px;
+        background: none;
+        font-size: 1.5rem;
+        color: #333;
+
+        &:disabled {
+          background-color: #f0f0f0;
+        }
+
+        &:enabled:hover,
+        &:enabled:focus {
+          background-color: #e6e6e6;
+        }
+      }
+    }
+
+    &__month-view {
+      &__weekdays {
+        text-align: center;
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 0.8rem;
+        color: #666;
+        padding: 0.5rem 0;
+
+        abbr {
+          text-decoration: none;
+        }
+      }
+
+      &__days {
+        button {
+          padding: 1rem;
+          background: rgb(224, 222, 222);
+          border-radius: 4px;
+          transition: all 0.2s ease;
+
+          &.available {
+            background-color: #28a745 !important;
+            color: white !important;
+
+            &:hover {
+              background-color: #218838 !important;
+            }
+          }
+
+          &.unavailable {
+            background-color: #dc3545 !important;
+            color: white !important;
+
+            &:hover {
+              background-color: #c82333 !important;
+            }
+          }
+        }
+      }
+    }
+
+    &__tile {
+      max-width: 100%;
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+      line-height: 16px;
+
+      &--now {
+        background: #f8f9fa;
+      }
+
+      &--active {
+        background: #007bff !important;
+        color: white !important;
+
+        &:enabled:hover,
+        &:enabled:focus {
+          background: #0056b3 !important;
+        }
+      }
+    }
+  }
+}
+
+.availability-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+
+      &.available {
+        background-color: #28a745;
+      }
+
+      &.unavailable {
+        background-color: #dc3545;
+      }
+    }
+
+    span {
+      color: #666;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+  }
+}
+
+.availability-controls {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+
+  .form-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+
+    .form-check-input {
+      width: 2rem;
+      height: 1rem;
+      cursor: pointer;
+
+      &:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+      }
+    }
+
+    .form-check-label {
+      font-size: 1rem;
+      color: #333;
+      cursor: pointer;
+    }
+  }
+
+  button {
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
 } 

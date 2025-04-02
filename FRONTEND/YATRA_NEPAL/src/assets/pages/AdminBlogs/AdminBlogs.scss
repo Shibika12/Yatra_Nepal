@@ -58,7 +58,7 @@
     .blogs-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-        gap: 4rem;
+        gap: 8rem;
     }
 
     .blog-card {

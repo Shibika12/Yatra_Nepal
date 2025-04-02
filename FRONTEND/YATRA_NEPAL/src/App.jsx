@@ -185,11 +185,7 @@ function App() {
           </AdminRoute>
         } />
 
-        <Route path="/blogs" element={
-          <AuthRoute>
-            <AllBlogs />
-          </AuthRoute>
-        } />
+        <Route path="/blogs" element={<Blogs />} />
 
         <Route 
           path="/guide/:id" 

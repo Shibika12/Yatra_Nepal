@@ -1,54 +1,114 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import { FiMoreVertical, FiHeart, FiArrowLeft } from 'react-icons/fi';
+import axios from 'axios';
 import "./Blogs.scss";
 
 export const Blogs = () => {
   const navigate = useNavigate();
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
-  
-  // Dummy data - replace with your actual data
-  const [blogs, setBlogs] = useState([
-    {
-      id: 1,
-      userId: "user1",
-      userName: "John Doe",
-      location: "Everest Base Camp",
-      content: "An amazing journey through the Himalayas. The views were breathtaking and the local people were incredibly welcoming...",
-      images: ["https://via.placeholder.com/400x300"],
-      likes: 24,
-      date: "2024-03-15"
-    },
-    {
-      id: 2,
-      userId: "user2",
-      userName: "Jane Smith",
-      location: "Pokhara",
-      content: "Paragliding over Phewa Lake was an unforgettable experience. The Annapurna range in the background made it even more special...",
-      images: ["https://via.placeholder.com/400x300"],
-      likes: 31,
-      date: "2024-03-14"
-    },
-    // Add more dummy blogs as needed
-  ]);
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const currentUserId = "user1"; // This should come from your auth system
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
 
-  const handleLike = (blogId) => {
-    setBlogs(prevBlogs =>
-      prevBlogs.map(blog =>
-        blog.id === blogId
-          ? { ...blog, likes: blog.likes + 1 }
-          : blog
-      )
-    );
+  const fetchBlogs = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please log in to view blogs');
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.get('http://localhost:3002/api/blogs', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setBlogs(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+      setError(error.response?.data?.message || 'Failed to load blogs');
+      setLoading(false);
+    }
+  };
+
+  const handleLike = async (blogId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please log in to like blogs');
+        navigate('/login');
+        return;
+      }
+
+      await axios.post(`http://localhost:3002/api/blogs/${blogId}/like`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      fetchBlogs(); // Refresh blogs to update like count
+    } catch (error) {
+      console.error('Error liking blog:', error);
+      setError('Failed to like blog');
+    }
+  };
+
+  const handleDelete = async (blogId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please log in to delete blogs');
+        navigate('/login');
+        return;
+      }
+
+      await axios.delete(`http://localhost:3002/api/blogs/${blogId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      fetchBlogs(); // Refresh blogs after deletion
+      setShowDeleteMenu(null);
+    } catch (error) {
+      console.error('Error deleting blog:', error);
+      setError('Failed to delete blog');
+    }
   };
 
   const handleBack = () => {
-    navigate(-1); // This will go back to the previous page
+    navigate(-1);
   };
+
+  if (loading) {
+    return (
+      <div className="blogs-page">
+        <Navbar />
+        <div className="blogs-content">
+          <div className="loading">Loading blogs...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="blogs-page">
+        <Navbar />
+        <div className="blogs-content">
+          <div className="error">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="blogs-page">
@@ -67,27 +127,23 @@ export const Blogs = () => {
 
         <div className="blogs-grid">
           {blogs.map(blog => (
-            <div key={blog.id} className="blog-card">
+            <div key={blog.blog_id} className="blog-card">
               <div className="blog-header">
                 <div className="blog-info">
-                  <h2>{blog.userName}</h2>
-                  <p className="location">📍 {blog.location}</p>
-                  <p className="date">{new Date(blog.date).toLocaleDateString()}</p>
+                  <h2>{blog.author_name}</h2>
+                  <p className="date">{new Date(blog.created_at).toLocaleDateString()}</p>
                 </div>
-                {blog.userId === currentUserId && (
+                {blog.user_id === JSON.parse(localStorage.getItem('user'))?.user_id && (
                   <div className="more-options">
                     <button 
-                      onClick={() => setShowDeleteMenu(blog.id)} 
+                      onClick={() => setShowDeleteMenu(blog.blog_id)} 
                       className="more-btn"
                     >
                       <FiMoreVertical />
                     </button>
-                    {showDeleteMenu === blog.id && (
+                    {showDeleteMenu === blog.blog_id && (
                       <div className="delete-menu">
-                        <button onClick={() => {
-                          setBlogs(blogs.filter(b => b.id !== blog.id));
-                          setShowDeleteMenu(null);
-                        }}>
+                        <button onClick={() => handleDelete(blog.blog_id)}>
                           Delete Blog
                         </button>
                       </div>
@@ -97,8 +153,12 @@ export const Blogs = () => {
               </div>
               
               <div className="blog-images">
-                {blog.images.map((img, index) => (
-                  <img key={index} src={img} alt={`Travel ${index + 1}`} />
+                {blog.images && blog.images.map((image, index) => (
+                  <img 
+                    key={index} 
+                    src={`http://localhost:3002${image}`} 
+                    alt={`Blog ${index + 1}`} 
+                  />
                 ))}
               </div>
               
@@ -106,11 +166,11 @@ export const Blogs = () => {
               
               <div className="blog-actions">
                 <button 
-                  className={`like-btn ${blog.liked ? 'liked' : ''}`}
-                  onClick={() => handleLike(blog.id)}
+                  className={`like-btn ${blog.is_liked ? 'liked' : ''}`}
+                  onClick={() => handleLike(blog.blog_id)}
                 >
-                  <FiHeart className="heart-icon" />
-                  <span>{blog.likes}</span>
+                  <FiHeart className={blog.is_liked ? 'filled' : ''} />
+                  <span>{blog.likes_count}</span>
                 </button>
               </div>
             </div>

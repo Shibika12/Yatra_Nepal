@@ -189,7 +189,7 @@ export const BlogWriting = () => {
       <div className="recent-blogs-section">
         <h2>Recent Blogs</h2>
         <div className="blogs-grid">
-          {blogs.map((blog) => (
+          {blogs.slice(0, 1).map((blog) => (
             <div key={blog.blog_id} className="blog-post">
               <div className="post-header">
                 <div className="post-info">

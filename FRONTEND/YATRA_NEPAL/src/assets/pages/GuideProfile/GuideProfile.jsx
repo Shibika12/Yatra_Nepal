@@ -4,6 +4,8 @@ import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
 import { FaStar, FaMapMarkerAlt, FaClock, FaLanguage, FaArrowLeft, FaComment } from 'react-icons/fa';
 import axios from 'axios';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import './GuideProfile.scss';
 
 const GuideProfile = () => {
@@ -13,10 +15,12 @@ const GuideProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [availability, setAvailability] = useState([]);
 
   useEffect(() => {
     fetchGuideData();
     fetchGuideReviews();
+    fetchAvailability();
   }, [id]);
 
   const fetchGuideData = async () => {
@@ -42,6 +46,28 @@ const GuideProfile = () => {
       setError('Failed to load guide profile');
       setLoading(false);
     }
+  };
+
+  const fetchAvailability = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3002/api/guides/guide-availability/${id}`);
+      setAvailability(response.data);
+    } catch (error) {
+      console.error('Error fetching availability:', error);
+    }
+  };
+
+  const tileClassName = ({ date }) => {
+    if (!date) return '';
+    const dateStr = date.toISOString().split('T')[0];
+    const availabilityData = availability.find(a => {
+      const availDate = a.date ? new Date(a.date).toISOString().split('T')[0] : null;
+      return availDate === dateStr;
+    });
+    if (availabilityData) {
+      return availabilityData.is_available ? 'available' : 'unavailable';
+    }
+    return '';
   };
 
   const fetchGuideReviews = async () => {
@@ -114,6 +140,27 @@ const GuideProfile = () => {
               <div className="specialization-section">
                 <h2>Specialization</h2>
                 <p>{guide.specialization}</p>
+              </div>
+
+              <div className="availability-section">
+                <h2>Availability</h2>
+                <div className="availability-calendar">
+                  <Calendar
+                    value={new Date()}
+                    tileClassName={tileClassName}
+                    minDate={new Date()}
+                  />
+                  <div className="availability-legend">
+                    <div className="legend-item">
+                      <div className="legend-color available"></div>
+                      <span>Available</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color unavailable"></div>
+                      <span>Unavailable</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

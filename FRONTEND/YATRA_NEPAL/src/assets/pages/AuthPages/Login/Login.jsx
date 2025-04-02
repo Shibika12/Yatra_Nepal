@@ -21,29 +21,15 @@ export const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log('Attempting login with:', { email: values.email });
-      
       const response = await axios.post('http://localhost:3002/auth/login', {
         email: values.email,
         password: values.password,
       });
   
-      console.log('Login response:', {
-        success: response.data.success,
-        role: response.data.role,
-        token: response.data.token ? 'Present' : 'Missing'
-      });
-
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('userRole', response.data.role.toLowerCase());
         localStorage.setItem('user', JSON.stringify(response.data));
-        
-        console.log('Stored in localStorage:', {
-          token: localStorage.getItem('token') ? 'Present' : 'Missing',
-          userRole: localStorage.getItem('userRole'),
-          user: localStorage.getItem('user') ? 'Present' : 'Missing'
-        });
         
         // Redirect based on role
         const userRole = response.data.role.toLowerCase();
@@ -56,11 +42,7 @@ export const Login = () => {
         }
       }
     } catch (error) {
-      console.error('Login error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
+      console.error('Login error:', error);
       setError(error.response?.data?.message || 'Invalid credentials');
     }
   };

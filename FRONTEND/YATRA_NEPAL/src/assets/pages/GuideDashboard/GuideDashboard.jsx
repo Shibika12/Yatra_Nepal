@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Modal, Badge } from 'react-bootstrap';
-import { FaUser, FaStar, FaLanguage, FaBriefcase, FaPhone, FaEnvelope, FaEdit, FaComments, FaPaperPlane } from 'react-icons/fa';
+import { FaUser, FaStar, FaLanguage, FaBriefcase, FaPhone, FaEnvelope, FaEdit, FaComments, FaPaperPlane, FaCalendarAlt } from 'react-icons/fa';
 import axios from 'axios';
 import './GuideDashboard.scss';
 import GuideNavbar from '../../components/GuideNavbar/GuideNavbar';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const GuideDashboard = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -15,6 +19,10 @@ const GuideDashboard = () => {
   const [showChat, setShowChat] = useState(false);
   const [selectedChat, setSelectedChat] = useState(null);
   const [newMessage, setNewMessage] = useState('');
+  const [availability, setAvailability] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   
   // Static data for messages
   const [messages] = useState([
@@ -54,6 +62,7 @@ const GuideDashboard = () => {
 
   useEffect(() => {
     fetchGuideData();
+    fetchAvailability();
   }, []);
 
   const fetchGuideData = async () => {
@@ -114,6 +123,30 @@ const GuideDashboard = () => {
       }
       setError(err.response?.data?.message || 'Failed to load guide profile. Please try again later.');
       setLoading(false);
+    }
+  };
+
+  const fetchAvailability = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        toast.error('Please login again');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      if (!user || !user.user_id) {
+        toast.error('Invalid user data');
+        return;
+      }
+
+      console.log('Fetching availability for user:', user.user_id);
+      const response = await axios.get(`http://localhost:3002/api/guides/guide-availability/${user.user_id}`);
+      console.log('Availability response:', response.data);
+      setAvailability(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Error fetching availability:', error);
+      toast.error('Failed to fetch availability');
     }
   };
 
@@ -285,6 +318,55 @@ const GuideDashboard = () => {
     }
   };
 
+  const handleAvailabilityUpdate = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        toast.error('Please login again');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      if (!user || !user.user_id) {
+        toast.error('Invalid user data');
+        return;
+      }
+
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      console.log('Updating availability:', {
+        date: dateStr,
+        is_available: isAvailable,
+        user_id: user.user_id
+      });
+
+      const response = await axios.post(`http://localhost:3002/api/guides/guide-availability/${user.user_id}`, {
+        date: dateStr,
+        is_available: isAvailable
+      });
+
+      console.log('Update response:', response.data);
+      toast.success('Availability updated successfully');
+      await fetchAvailability(); // Refresh the availability data
+      setShowAvailabilityModal(false);
+    } catch (error) {
+      console.error('Error updating availability:', error);
+      toast.error(error.response?.data?.message || 'Failed to update availability');
+    }
+  };
+
+  const tileClassName = ({ date }) => {
+    if (!date) return '';
+    const dateStr = date.toISOString().split('T')[0];
+    const availabilityData = availability.find(a => {
+      const availDate = a.date ? new Date(a.date).toISOString().split('T')[0] : null;
+      return availDate === dateStr;
+    });
+    if (availabilityData) {
+      return availabilityData.is_available ? 'available' : 'unavailable';
+    }
+    return '';
+  };
+
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
@@ -321,6 +403,14 @@ const GuideDashboard = () => {
               <h1>Guide Profile</h1>
             </Col>
             <Col xs="auto">
+              <Button 
+                variant="primary" 
+                onClick={() => setShowAvailabilityModal(true)}
+                className="me-2"
+              >
+                <FaCalendarAlt className="me-2" />
+                Manage Availability
+              </Button>
               <Button 
                 variant="primary" 
                 onClick={() => setShowChat(true)}
@@ -531,6 +621,49 @@ const GuideDashboard = () => {
             </Col>
           </Row>
         </Container>
+
+        {/* Availability Modal */}
+        <Modal show={showAvailabilityModal} onHide={() => setShowAvailabilityModal(false)} size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>Manage Your Availability</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="availability-calendar">
+              <Calendar
+                onChange={setSelectedDate}
+                value={selectedDate}
+                tileClassName={tileClassName}
+                minDate={new Date()}
+              />
+              <div className="availability-legend mt-3">
+                <div className="legend-item">
+                  <div className="legend-color available"></div>
+                  <span>Available</span>
+                </div>
+                <div className="legend-item">
+                  <div className="legend-color unavailable"></div>
+                  <span>Unavailable</span>
+                </div>
+              </div>
+            </div>
+            <div className="availability-controls mt-4">
+              <Form.Check
+                type="switch"
+                id="availability-switch"
+                label="Available on selected date"
+                checked={isAvailable}
+                onChange={(e) => setIsAvailable(e.target.checked)}
+              />
+              <Button 
+                variant="primary" 
+                onClick={handleAvailabilityUpdate}
+                className="mt-3"
+              >
+                Update Availability
+              </Button>
+            </div>
+          </Modal.Body>
+        </Modal>
 
         {/* Chat Modal */}
         <Modal show={showChat} onHide={() => setShowChat(false)} size="lg">

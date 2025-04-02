@@ -37,6 +37,131 @@
         padding: 1.5rem;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        .availability-section {
+          margin-top: 2rem;
+          padding-top: 2rem;
+          border-top: 1px solid #eee;
+
+          h2 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .availability-calendar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+
+            .react-calendar {
+              width: 100%;
+              max-width: 600px;
+              border: none;
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+              padding: 1rem;
+              background: white;
+
+              .react-calendar__tile {
+                padding: 1.2rem 0.5rem;
+                font-size: 1rem;
+                border-radius: 8px;
+                transition: all 0.2s ease;
+
+                &:enabled:hover {
+                  background-color: #f0f0f0;
+                }
+
+                &.available {
+                  background-color: #28a745;
+                  color: white;
+
+                  &:enabled:hover {
+                    background-color: #218838;
+                  }
+                }
+
+                &.unavailable {
+                  background-color: #dc3545;
+                  color: white;
+
+                  &:enabled:hover {
+                    background-color: #c82333;
+                  }
+                }
+              }
+
+              .react-calendar__navigation {
+                margin-bottom: 1rem;
+
+                button {
+                  min-width: 44px;
+                  background: none;
+                  font-size: 1.2rem;
+                  color: #2c3e50;
+
+                  &:disabled {
+                    background-color: #f0f0f0;
+                  }
+
+                  &:enabled:hover,
+                  &:enabled:focus {
+                    background-color: #e6e6e6;
+                  }
+                }
+              }
+
+              .react-calendar__month-view__weekdays {
+                text-align: center;
+                text-transform: uppercase;
+                font-weight: 600;
+                font-size: 0.8rem;
+                color: #666;
+                padding: 0.5rem 0;
+               
+
+                abbr {
+                  text-decoration: none;
+                  cursor: default;
+                }
+              }
+            }
+
+            .availability-legend {
+              display: flex;
+              gap: 2rem;
+              margin-top: 1rem;
+
+
+              .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+
+                .legend-color {
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 4px;
+
+                  &.available {
+                    background-color: #28a745;
+                  }
+
+                  &.unavailable {
+                    background-color: #dc3545;
+                  }
+                }
+
+                span {
+                  color: #666;
+                  font-size: 0.9rem;
+                }
+              }
+            }
+          }
+        }
       }
 
       .profile-sidebar {
@@ -81,6 +206,7 @@
             gap: 0.5rem;
             background: #28a745;
             color: white;
+            
 
             &:hover {
               background: #218838;
@@ -270,6 +396,10 @@
 @media (max-width: 992px) {
   .guide-profile-page {
     .profile-container {
+      .profile-content-wrapper {
+        grid-template-columns: 1fr;
+      }
+
       .profile-header {
         flex-direction: column;
         gap: 2rem;
@@ -286,7 +416,25 @@
 @media (max-width: 768px) {
   .guide-profile-page {
     .profile-container {
-      padding: 2rem 1rem;
+      padding: 1rem;
+
+      .profile-content-wrapper {
+        .profile-main {
+          .availability-section {
+            .availability-calendar {
+        
+              .react-calendar {
+                font-size: 0.9rem;
+
+
+                .react-calendar__tile {
+                  padding: 0.8rem 0.3rem;
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 } 

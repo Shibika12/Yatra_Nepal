@@ -391,4 +391,147 @@ router.get('/all-guides', async (req, res) => {
     }
 });
 
+// Get guide availability
+router.get('/guide-availability/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        console.log('Fetching availability for user:', userId);
+
+        // First check if user exists and is a guide
+        const [userCheck] = await pool.query(
+            'SELECT user_id, user_type FROM Users WHERE user_id = ?',
+            [userId]
+        );
+
+        if (!userCheck.length) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (userCheck[0].user_type !== 'Guide') {
+            return res.status(403).json({ message: 'User is not a guide' });
+        }
+
+        // Get or create guide record
+        let guideId;
+        const [guideCheck] = await pool.query(
+            'SELECT guide_id FROM guides WHERE user_id = ?',
+            [userId]
+        );
+
+        if (!guideCheck.length) {
+            const [newGuide] = await pool.query(
+                'INSERT INTO guides (user_id) VALUES (?)',
+                [userId]
+            );
+            guideId = newGuide.insertId;
+        } else {
+            guideId = guideCheck[0].guide_id;
+        }
+
+        // Get availability
+        const [availability] = await pool.query(
+            'SELECT date, is_available FROM guide_availability WHERE guide_id = ? ORDER BY date',
+            [guideId]
+        );
+
+        console.log('Found availability records:', availability.length);
+        res.json(availability);
+    } catch (error) {
+        console.error('Error fetching guide availability:', error);
+        res.status(500).json({ message: 'Failed to fetch guide availability' });
+    }
+});
+
+// Update guide availability
+router.post('/guide-availability/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { date, is_available } = req.body;
+
+        console.log('Received request:', { userId, date, is_available });
+
+        if (!date) {
+            return res.status(400).json({ message: 'Date is required' });
+        }
+
+        // First check if user exists and is a guide
+        console.log('Checking user:', userId);
+        const [userCheck] = await pool.query(
+            'SELECT user_id, user_type FROM Users WHERE user_id = ?',
+            [userId]
+        );
+
+        console.log('User check result:', userCheck);
+
+        if (!userCheck.length) {
+            console.log('User not found:', userId);
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (userCheck[0].user_type !== 'Guide') {
+            console.log('User is not a guide:', userCheck[0].user_type);
+            return res.status(403).json({ message: 'User is not a guide' });
+        }
+
+        // Get or create guide record
+        console.log('Checking guide record for user:', userId);
+        const [guideCheck] = await pool.query(
+            'SELECT guide_id FROM guides WHERE user_id = ?',
+            [userId]
+        );
+
+        console.log('Guide check result:', guideCheck);
+
+        let guideId;
+        if (!guideCheck.length) {
+            console.log('Creating new guide record for user:', userId);
+            const [newGuide] = await pool.query(
+                'INSERT INTO guides (user_id) VALUES (?)',
+                [userId]
+            );
+            guideId = newGuide.insertId;
+            console.log('Created new guide with ID:', guideId);
+        } else {
+            guideId = guideCheck[0].guide_id;
+            console.log('Found existing guide with ID:', guideId);
+        }
+
+        // Start transaction
+        await pool.query('START TRANSACTION');
+
+        // Check if entry exists
+        console.log('Checking existing availability for guide:', guideId, 'date:', date);
+        const [existing] = await pool.query(
+            'SELECT availability_id FROM guide_availability WHERE guide_id = ? AND date = ?',
+            [guideId, date]
+        );
+
+        console.log('Existing availability check result:', existing);
+
+        if (existing.length > 0) {
+            console.log('Updating existing availability record');
+            // Update existing entry
+            await pool.query(
+                'UPDATE guide_availability SET is_available = ? WHERE guide_id = ? AND date = ?',
+                [is_available, guideId, date]
+            );
+        } else {
+            console.log('Creating new availability record');
+            // Insert new entry
+            await pool.query(
+                'INSERT INTO guide_availability (guide_id, date, is_available) VALUES (?, ?, ?)',
+                [guideId, date, is_available]
+            );
+        }
+
+        await pool.query('COMMIT');
+        console.log('Availability updated successfully');
+        res.json({ message: 'Availability updated successfully' });
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        console.error('Error updating guide availability:', error);
+        res.status(500).json({ message: 'Failed to update guide availability' });
+    }
+});
+
 export default router; 
