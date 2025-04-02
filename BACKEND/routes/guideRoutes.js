@@ -64,9 +64,11 @@ router.get('/guide-profile/:userId', async (req, res) => {
 router.put('/guide-profile/:userId', (req, res) => {
     upload(req, res, async (err) => {
         if (err) {
+            console.error('Upload error:', err);
             return res.status(400).json({ message: err.message });
         }
 
+        const connection = await pool.getConnection();
         try {
             const {
                 name,
@@ -80,7 +82,7 @@ router.put('/guide-profile/:userId', (req, res) => {
             const userId = req.params.userId;
 
             // Begin transaction
-            await pool.query('START TRANSACTION');
+            await connection.beginTransaction();
 
             // Update user table with basic info
             if (name || phone_number) {
@@ -88,11 +90,11 @@ router.put('/guide-profile/:userId', (req, res) => {
                 const updateUserData = {};
                 if (name) updateUserData.name = name;
                 if (phone_number) updateUserData.phone_number = phone_number;
-                await pool.query(updateUserQuery, [updateUserData, userId]);
+                await connection.query(updateUserQuery, [updateUserData, userId]);
             }
 
             // Check if guide exists
-            const [existingGuide] = await pool.query(
+            const [existingGuide] = await connection.query(
                 'SELECT * FROM guides WHERE user_id = ?',
                 [userId]
             );
@@ -108,20 +110,20 @@ router.put('/guide-profile/:userId', (req, res) => {
             if (existingGuide.length > 0) {
                 // Update existing guide
                 if (Object.keys(guideData).length > 0) {
-                    await pool.query('UPDATE guides SET ? WHERE user_id = ?', [guideData, userId]);
+                    await connection.query('UPDATE guides SET ? WHERE user_id = ?', [guideData, userId]);
                 }
             } else {
                 // Create new guide entry
-                await pool.query(
+                await connection.query(
                     'INSERT INTO guides SET ?',
                     { ...guideData, user_id: userId }
                 );
             }
 
-            await pool.query('COMMIT');
+            await connection.commit();
 
             // Fetch and return updated profile
-            const [updatedProfile] = await pool.query(
+            const [updatedProfile] = await connection.query(
                 `SELECT u.user_id, u.name, u.email, u.nationality, u.phone_number, 
                         u.created_at, u.is_admin, u.is_verified, u.guide_type,
                         g.profile_pic, g.years_of_experience, g.languages, g.about, g.specialization
@@ -134,9 +136,11 @@ router.put('/guide-profile/:userId', (req, res) => {
             res.json(updatedProfile[0]);
 
         } catch (error) {
-            await pool.query('ROLLBACK');
+            await connection.rollback();
             console.error('Error updating guide profile:', error);
-            res.status(500).json({ message: 'Server error' });
+            res.status(500).json({ message: 'Server error', error: error.message });
+        } finally {
+            connection.release();
         }
     });
 });

@@ -110,6 +110,14 @@ const GuideDashboard = () => {
         setFormData(prev => ({
           ...prev,
           ...response.data,
+          name: response.data.name || '',
+          email: response.data.email || '',
+          phone_number: response.data.phone_number || '',
+          guide_type: response.data.guide_type || '',
+          years_of_experience: response.data.years_of_experience || '',
+          languages: response.data.languages || '',
+          about: response.data.about || '',
+          specialization: response.data.specialization || '',
           profile_pic: response.data.profile_pic ? 
             `http://localhost:3002/${response.data.profile_pic}` : 
             '/default-profile.png'
@@ -154,7 +162,7 @@ const GuideDashboard = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value === null ? '' : value
     }));
   };
 
