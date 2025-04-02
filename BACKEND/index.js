@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import guideRoutes from './routes/guideRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
+import touristRoutes from './routes/touristRoutes.js';
 
 const app = express();
 
@@ -28,6 +29,7 @@ connectToDatabase()
         app.use('/api/admin', adminRoutes);
         app.use('/api/guides', guideRoutes);
         app.use('/api/blogs', blogRoutes);
+        app.use('/api/tourists', touristRoutes);
         console.log('Routes registered successfully');
         
         const PORT = 3002;
