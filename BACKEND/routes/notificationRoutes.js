@@ -4,21 +4,15 @@ import authenticateToken from '../middleware/authenticateToken.js';
 
 const router = express.Router();
 
-// Debug middleware for notification routes
+// Remove debug middleware
 router.use((req, res, next) => {
-  console.log('Notification route hit:', req.method, req.url);
-  console.log('Headers:', req.headers);
   next();
 });
 
 // Get all notifications for the authenticated user
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    console.log('Getting notifications for user:', req.user);
-    console.log('User ID from token:', req.user.userId);
-    
     if (!req.user || !req.user.userId) {
-      console.error('No user ID in token');
       return res.status(401).json({ error: 'Invalid user token' });
     }
 
@@ -27,34 +21,15 @@ router.get('/', authenticateToken, async (req, res) => {
       [req.user.userId]
     );
 
-    console.log('Raw notifications from DB:', rows);
-    console.log(`Found ${rows.length} notifications for user ${req.user.userId}`);
-    
-    // Check if notifications have the expected structure
-    if (rows.length > 0) {
-      console.log('Sample notification structure:', {
-        id: rows[0].id,
-        user_id: rows[0].user_id,
-        type: rows[0].type,
-        content: rows[0].content,
-        is_read: rows[0].is_read,
-        created_at: rows[0].created_at
-      });
-    }
-
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Mark a notification as read
 router.put('/:id/read', authenticateToken, async (req, res) => {
   try {
-    console.log('Marking notification as read:', req.params.id);
-    console.log('User:', req.user);
-
     if (!req.user || !req.user.userId) {
       return res.status(401).json({ error: 'Invalid user token' });
     }
@@ -70,8 +45,7 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
     
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -80,8 +54,6 @@ router.post('/', authenticateToken, async (req, res) => {
   const { user_id, type, content, reference_id } = req.body;
   
   try {
-    console.log('Creating notification:', { user_id, type, content, reference_id });
-
     if (!user_id || !type || !content) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -91,7 +63,6 @@ router.post('/', authenticateToken, async (req, res) => {
       [user_id, type, content, reference_id]
     );
     
-    console.log('Created notification:', result);
     res.status(201).json({ 
       id: result.insertId,
       user_id,
@@ -100,8 +71,7 @@ router.post('/', authenticateToken, async (req, res) => {
       reference_id
     });
   } catch (error) {
-    console.error('Error creating notification:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

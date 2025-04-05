@@ -120,10 +120,7 @@ const GuideProfile = () => {
       
       const response = await axios.post(
         'http://localhost:3002/api/chat/conversations/create',
-        { 
-          guide_id: guide.id,
-          message: "Hi, I'm interested in booking you as a guide!"
-        },
+        { guide_id: guide.id },  // Removed the automatic message
         { 
           headers: { 
             Authorization: `Bearer ${token}`,
@@ -141,19 +138,7 @@ const GuideProfile = () => {
       }
     } catch (error) {
       console.error('Error starting chat:', error);
-      if (error.response) {
-        console.log('Error response:', error.response.data);
-        if (error.response.status === 404) {
-          toast.error('Chat service is currently unavailable. Please try again later.');
-        } else if (error.response.status === 401) {
-          toast.error('Please login again to continue.');
-          navigate('/login');
-        } else {
-          toast.error(error.response.data.error || 'Failed to start chat. Please try again.');
-        }
-      } else {
-        toast.error('Network error. Please check your connection.');
-      }
+      toast.error('Failed to start chat');
     }
   };
 

@@ -36,13 +36,37 @@ const TouristMessages = () => {
   useEffect(() => {
     // Initialize socket connection
     socketRef.current = io('http://localhost:3002', {
-      auth: { token }
+      auth: { token },
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      debug: false,
+      logger: {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {}
+      }
     });
 
     // Listen for new messages
     socketRef.current.on('receive_message', (message) => {
-      setMessages(prev => [...prev, message]);
-      scrollToBottom();
+      if (selectedConversation?.id === message.conversation_id) {
+        setMessages(prev => {
+          const messageExists = prev.some(msg => 
+            msg.message_id === message.message_id || 
+            (msg.message === message.message && 
+             msg.sender_id === message.sender_id && 
+             msg.created_at === message.created_at)
+          );
+          
+          if (!messageExists) {
+            return [...prev, message];
+          }
+          return prev;
+        });
+        scrollToBottom();
+      }
     });
 
     // Clean up socket connection
@@ -51,7 +75,7 @@ const TouristMessages = () => {
         socketRef.current.disconnect();
       }
     };
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     fetchConversations();
@@ -60,17 +84,13 @@ const TouristMessages = () => {
     const params = new URLSearchParams(location.search);
     const conversationId = params.get('conversation');
     if (conversationId) {
-      console.log('Conversation ID from URL:', conversationId);
       // Wait for conversations to be loaded before selecting
       const checkAndSelectConversation = () => {
         if (conversations.length > 0) {
           const conversation = conversations.find(conv => conv.id === parseInt(conversationId));
           if (conversation) {
-            console.log('Found conversation:', conversation);
             setSelectedConversation(conversation);
             handleConversationSelect(parseInt(conversationId));
-          } else {
-            console.error('Conversation not found:', conversationId);
           }
         }
       };
@@ -89,7 +109,7 @@ const TouristMessages = () => {
         return () => clearInterval(interval);
       }
     }
-  }, [location, conversations]);
+  }, [location.search]);
 
   const fetchConversations = async () => {
     try {
@@ -107,15 +127,27 @@ const TouristMessages = () => {
   };
 
   const handleConversationSelect = async (conversationId) => {
+    // Prevent unnecessary API calls if selecting the same conversation
+    if (selectedConversation?.id === conversationId) return;
+
     try {
+      // Reset current conversation and messages
+      setSelectedConversation(null);
+      setMessages([]);
+
       const token = localStorage.getItem('token');
       const response = await axios.get(`http://localhost:3002/api/chat/conversation/${conversationId}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      setSelectedConversation(conversations.find(conv => conv.id === conversationId));
-      setMessages(response.data);
-      scrollToBottom();
+      // Find the conversation
+      const newConversation = conversations.find(conv => conv.id === conversationId);
+      if (!newConversation) return;
+
+      // Update states after successful fetch
+      setSelectedConversation(newConversation);
+      setMessages(response.data || []);
+      setTimeout(scrollToBottom, 50);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Failed to load messages');

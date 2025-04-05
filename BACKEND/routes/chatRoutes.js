@@ -6,9 +6,6 @@ const router = express.Router();
 
 // Debug middleware specific to chat routes
 router.use((req, res, next) => {
-  console.log('[Chat Route]', req.method, req.url);
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
   next();
 });
 
@@ -67,29 +64,20 @@ router.get('/guide/conversations/test', async (req, res) => {
 
 // Create a new conversation or get existing one
 router.post('/conversations/create', authenticateToken, async (req, res) => {
-  console.log('Received request to create conversation');
-  console.log('Request body:', req.body);
-  console.log('User from token:', req.user);
-
   try {
-    const { guide_id, message } = req.body;
-    const tourist_id = req.user.userId; // From auth token
+    const { guide_id } = req.body;
+    const tourist_id = req.user.userId;
 
     if (!guide_id) {
-      console.log('Missing guide_id in request');
       return res.status(400).json({ error: 'guide_id is required' });
     }
 
     if (!tourist_id) {
-      console.log('Missing tourist_id from token');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    console.log('Creating conversation:', { tourist_id, guide_id, message });
-
     const db = await connectToDatabase();
     
-    // Check if conversation already exists
     const [existingConv] = await db.query(
       'SELECT id FROM conversations WHERE (tourist_id = ? AND guide_id = ?)',
       [tourist_id, guide_id]
@@ -99,35 +87,20 @@ router.post('/conversations/create', authenticateToken, async (req, res) => {
 
     if (existingConv.length > 0) {
       conversationId = existingConv[0].id;
-      console.log('Found existing conversation:', conversationId);
     } else {
-      // Create new conversation
       const [result] = await db.query(
         'INSERT INTO conversations (tourist_id, guide_id, created_at) VALUES (?, ?, NOW())',
         [tourist_id, guide_id]
       );
       conversationId = result.insertId;
-      console.log('Created new conversation:', conversationId);
-
-      // Add initial message if provided
-      if (message) {
-        await db.query(
-          'INSERT INTO messages (conversation_id, sender_id, receiver_id, message, created_at) VALUES (?, ?, ?, ?, NOW())',
-          [conversationId, tourist_id, guide_id, message]
-        );
-        console.log('Added initial message to conversation');
-      }
     }
 
-    const response = { 
+    res.json({ 
       id: conversationId,
       message: 'Conversation created/retrieved successfully' 
-    };
-    console.log('Sending response:', response);
-    res.json(response);
+    });
   } catch (error) {
-    console.error('Error in conversation creation:', error);
-    res.status(500).json({ error: 'Failed to create conversation', details: error.message });
+    res.status(500).json({ error: 'Failed to create conversation' });
   }
 });
 
@@ -137,7 +110,6 @@ router.get('/tourist/conversations', authenticateToken, async (req, res) => {
   
   try {
     const db = await connectToDatabase();
-    console.log('Fetching conversations for tourist:', tourist_id);
 
     const query = `
       SELECT DISTINCT 
@@ -174,11 +146,9 @@ router.get('/tourist/conversations', authenticateToken, async (req, res) => {
     `;
 
     const [conversations] = await db.query(query, [tourist_id, tourist_id]);
-    console.log('Found conversations:', conversations.length);
     res.json(conversations);
   } catch (error) {
-    console.error('Error fetching conversations:', error);
-    res.status(500).json({ error: 'Failed to fetch conversations', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch conversations' });
   }
 });
 
@@ -242,7 +212,6 @@ router.get('/conversation/:conversationId/messages', authenticateToken, async (r
 
   try {
     const db = await connectToDatabase();
-    console.log('Fetching messages for conversation:', conversationId, 'user:', user_id);
 
     // Verify user has access to this conversation
     const [conversation] = await db.query(
@@ -251,7 +220,6 @@ router.get('/conversation/:conversationId/messages', authenticateToken, async (r
     );
 
     if (!conversation.length) {
-      console.log('Access denied: User does not have access to this conversation');
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -274,7 +242,6 @@ router.get('/conversation/:conversationId/messages', authenticateToken, async (r
     `;
 
     const [messages] = await db.query(query, [conversationId]);
-    console.log('Found messages:', messages.length);
 
     // Mark messages as read
     await db.query(
@@ -285,7 +252,7 @@ router.get('/conversation/:conversationId/messages', authenticateToken, async (r
     res.json(messages);
   } catch (error) {
     console.error('Error fetching messages:', error);
-    res.status(500).json({ error: 'Failed to fetch messages', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });
 
@@ -296,7 +263,6 @@ router.post('/message', authenticateToken, async (req, res) => {
 
   try {
     const db = await connectToDatabase();
-    console.log('Sending message in conversation:', conversationId);
 
     // Verify conversation exists and user has access
     const [conversation] = await db.query(
@@ -305,7 +271,6 @@ router.post('/message', authenticateToken, async (req, res) => {
     );
 
     if (!conversation.length) {
-      console.log('Access denied: User does not have access to this conversation');
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -337,11 +302,9 @@ router.post('/message', authenticateToken, async (req, res) => {
       [result.insertId]
     );
 
-    console.log('Message sent successfully');
     res.json(newMessage[0]);
   } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).json({ error: 'Failed to send message', details: error.message });
+    res.status(500).json({ error: 'Failed to send message' });
   }
 });
 

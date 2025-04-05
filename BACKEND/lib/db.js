@@ -16,7 +16,6 @@ export const pool = mysql.createPool({
 // Test the connection
 pool.getConnection()
     .then(connection => {
-        console.log('Database connected successfully');
         connection.release();
     })
     .catch(err => {
@@ -26,7 +25,6 @@ pool.getConnection()
 export const connectToDatabase = async () => {
     try {
         const connection = await pool.getConnection();
-        console.log("Successfully connected to the database");
         connection.release();
         return pool;
     } catch (error) {

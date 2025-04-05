@@ -26,16 +26,12 @@ const io = new Server(server, {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
-
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conversation_${conversationId}`);
-    console.log(`Socket ${socket.id} joined conversation ${conversationId}`);
   });
 
   socket.on('send_message', async (data) => {
     try {
-      console.log('Received message:', data);
       const { conversationId, message, senderId, receiverId } = data;
       
       // Get sender's name
@@ -47,8 +43,6 @@ io.on('connection', (socket) => {
         'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
         [receiverId, 'message', `New message from ${senderName}`, conversationId]
       );
-      
-      console.log('Created notification:', notificationResult.insertId);
       
       // Emit message to receiver's socket
       io.to(receiverId.toString()).emit('receive_message', {
@@ -70,12 +64,9 @@ io.on('connection', (socket) => {
       });
       
     } catch (error) {
+      // Keep error logging for critical errors
       console.error('Error handling message:', error);
     }
-  });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
   });
 });
 
@@ -88,11 +79,8 @@ app.use(cors({
 // Parse JSON bodies
 app.use(express.json());
 
-// Debug middleware for all requests
+// Remove debug middleware
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log('Request headers:', req.headers);
-  console.log('Request body:', req.body);
   next();
 });
 
@@ -125,9 +113,6 @@ app.get('/api/chat/test', (req, res) => {
 
 // 404 handler
 app.use((req, res) => {
-  console.log(`404 Not Found: ${req.method} ${req.url}`);
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
   res.status(404).json({ message: 'Route not found' });
 });
 
@@ -140,20 +125,9 @@ app.use((err, req, res, next) => {
 // Start server after database connection
 connectToDatabase()
   .then(() => {
-    console.log('Connected to database successfully');
     const PORT = process.env.PORT || 3002;
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
-      
-      // Log all registered routes
-      console.log('\nRegistered routes:');
-      app._router.stack.forEach(r => {
-        if (r.route && r.route.path) {
-          console.log(`${Object.keys(r.route.methods).join(',')} ${r.route.path}`);
-        } else if (r.name === 'router') {
-          console.log(`Router: ${r.regexp}`);
-        }
-      });
     });
   })
   .catch(error => {
