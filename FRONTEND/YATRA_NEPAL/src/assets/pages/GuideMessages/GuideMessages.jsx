@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaSearch, FaUser, FaPaperPlane } from 'react-icons/fa';
+import { FaSearch, FaUser, FaPaperPlane, FaArrowLeft } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import GuideNavbar from '../../components/GuideNavbar/GuideNavbar';
 import './GuideMessages.scss';
+import io from 'socket.io-client';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const GuideMessages = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,6 +16,10 @@ const GuideMessages = () => {
   const messagesEndRef = useRef(null);
   const token = localStorage.getItem('token');
   const [guideId, setGuideId] = useState(null);
+  const socketRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -22,16 +28,6 @@ const GuideMessages = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  useEffect(() => {
-    fetchConversations();
-  }, []);
-
-  useEffect(() => {
-    if (selectedConversation) {
-      fetchMessages(selectedConversation.id);
-    }
-  }, [selectedConversation]);
 
   useEffect(() => {
     // Get guide ID from token
@@ -45,31 +41,95 @@ const GuideMessages = () => {
     }
   }, [token]);
 
+  useEffect(() => {
+    fetchConversations();
+  }, []);
+
+  useEffect(() => {
+    // Check for conversation ID in URL params after conversations are loaded
+    if (conversations.length > 0) {
+      const params = new URLSearchParams(location.search);
+      const conversationId = params.get('conversation');
+      if (conversationId) {
+        const conversation = conversations.find(conv => conv.id === parseInt(conversationId));
+        if (conversation) {
+          setSelectedConversation(conversation);
+          handleConversationSelect(parseInt(conversationId));
+        }
+      }
+    }
+  }, [conversations, location]);
+
+  useEffect(() => {
+    // Initialize socket connection
+    if (token) {
+      socketRef.current = io('http://localhost:3002', {
+        auth: { token }
+      });
+
+      // Listen for new messages
+      socketRef.current.on('receive_message', (message) => {
+        console.log('Received message in GuideMessages:', message);
+        setMessages(prev => {
+          // Check if message already exists in the array
+          const messageExists = prev.some(msg => 
+            msg.message_id === message.message_id || 
+            (msg.message === message.message && 
+             msg.sender_id === message.sender_id && 
+             msg.created_at === message.created_at)
+          );
+          
+          if (!messageExists) {
+            return [...prev, message];
+          }
+          return prev;
+        });
+        scrollToBottom();
+      });
+
+      // Clean up socket connection
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+        }
+      };
+    }
+  }, [token]);
+
   const fetchConversations = async () => {
     try {
       console.log('Fetching conversations...');
       console.log('Token:', token ? 'Token present' : 'No token');
       
-      // Use the authenticated route
       const response = await axios.get('http://localhost:3002/api/chat/guide/conversations', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       console.log('Conversations response:', response.data);
       setConversations(response.data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching conversations:', error);
       console.error('Error details:', error.response ? error.response.data : 'No response data');
       toast.error('Failed to load conversations');
+      setLoading(false);
     }
   };
 
-  const fetchMessages = async (conversationId) => {
+  const handleConversationSelect = async (conversationId) => {
     try {
+      console.log('Selecting conversation:', conversationId);
       const response = await axios.get(`http://localhost:3002/api/chat/conversation/${conversationId}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessages(response.data);
+      
+      console.log('Fetched messages:', response.data);
+      const conversation = conversations.find(conv => conv.id === conversationId);
+      if (conversation) {
+        setSelectedConversation(conversation);
+        setMessages(response.data || []);
+        scrollToBottom();
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Failed to load messages');
@@ -78,36 +138,30 @@ const GuideMessages = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (newMessage.trim() && selectedConversation) {
-      try {
-        const response = await axios.post('http://localhost:3002/api/chat/message', 
-          {
-            conversationId: selectedConversation.id,
-            message: newMessage
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
+    if (!newMessage.trim() || !selectedConversation) return;
 
-        setMessages([...messages, response.data]);
-        setNewMessage('');
-        
-        // Update the last message in conversations list
-        setConversations(conversations.map(conv => {
-          if (conv.id === selectedConversation.id) {
-            return {
-              ...conv,
-              last_message: newMessage,
-              last_message_time: new Date().toISOString()
-            };
-          }
-          return conv;
-        }));
-      } catch (error) {
-        console.error('Error sending message:', error);
-        toast.error('Failed to send message');
-      }
+    try {
+      const response = await axios.post('http://localhost:3002/api/chat/message', {
+        conversationId: selectedConversation.id,
+        message: newMessage
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Emit message through socket
+      socketRef.current.emit('send_message', {
+        conversationId: selectedConversation.id,
+        message: newMessage,
+        senderId: guideId,
+        receiverId: selectedConversation.tourist_id
+      });
+
+      setMessages(prev => [...prev, response.data]);
+      setNewMessage('');
+      scrollToBottom();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
   };
 
@@ -152,7 +206,10 @@ const GuideMessages = () => {
               <div
                 key={conv.id}
                 className={`conversation-item ${selectedConversation?.id === conv.id ? 'active' : ''} ${conv.unread_count > 0 ? 'unread' : ''}`}
-                onClick={() => setSelectedConversation(conv)}
+                onClick={() => {
+                  setSelectedConversation(conv);
+                  handleConversationSelect(conv.id);
+                }}
               >
                 <div className="tourist-avatar">
                   <FaUser />

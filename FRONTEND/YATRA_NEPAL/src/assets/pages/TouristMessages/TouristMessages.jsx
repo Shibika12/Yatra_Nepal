@@ -60,9 +60,36 @@ const TouristMessages = () => {
     const params = new URLSearchParams(location.search);
     const conversationId = params.get('conversation');
     if (conversationId) {
-      handleConversationSelect(parseInt(conversationId));
+      console.log('Conversation ID from URL:', conversationId);
+      // Wait for conversations to be loaded before selecting
+      const checkAndSelectConversation = () => {
+        if (conversations.length > 0) {
+          const conversation = conversations.find(conv => conv.id === parseInt(conversationId));
+          if (conversation) {
+            console.log('Found conversation:', conversation);
+            setSelectedConversation(conversation);
+            handleConversationSelect(parseInt(conversationId));
+          } else {
+            console.error('Conversation not found:', conversationId);
+          }
+        }
+      };
+      
+      if (conversations.length > 0) {
+        checkAndSelectConversation();
+      } else {
+        // If conversations aren't loaded yet, wait for them
+        const interval = setInterval(() => {
+          if (conversations.length > 0) {
+            checkAndSelectConversation();
+            clearInterval(interval);
+          }
+        }, 100);
+        
+        return () => clearInterval(interval);
+      }
     }
-  }, [location]);
+  }, [location, conversations]);
 
   const fetchConversations = async () => {
     try {
@@ -112,6 +139,7 @@ const TouristMessages = () => {
       socketRef.current.emit('send_message', {
         conversationId: selectedConversation.id,
         message: newMessage,
+        senderId: touristId,
         receiverId: selectedConversation.guide_id
       });
 

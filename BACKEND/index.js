@@ -9,6 +9,8 @@ import guideRoutes from './routes/guideRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
 import touristRoutes from './routes/touristRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import pool from './lib/db.js';
 
 const app = express();
 const server = createServer(app);
@@ -16,8 +18,9 @@ const server = createServer(app);
 // Set up Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -30,9 +33,45 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} joined conversation ${conversationId}`);
   });
 
-  socket.on('send_message', (data) => {
-    io.to(`conversation_${data.conversationId}`).emit('receive_message', data);
-    console.log(`Message sent in conversation ${data.conversationId}`);
+  socket.on('send_message', async (data) => {
+    try {
+      console.log('Received message:', data);
+      const { conversationId, message, senderId, receiverId } = data;
+      
+      // Get sender's name
+      const [senderResult] = await pool.query('SELECT name FROM users WHERE user_id = ?', [senderId]);
+      const senderName = senderResult[0]?.name || 'Unknown User';
+      
+      // Create notification for receiver
+      const [notificationResult] = await pool.query(
+        'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [receiverId, 'message', `New message from ${senderName}`, conversationId]
+      );
+      
+      console.log('Created notification:', notificationResult.insertId);
+      
+      // Emit message to receiver's socket
+      io.to(receiverId.toString()).emit('receive_message', {
+        conversation_id: conversationId,
+        message: message,
+        sender_id: senderId,
+        sender_name: senderName,
+        created_at: new Date()
+      });
+
+      // Emit notification to receiver's socket
+      io.to(receiverId.toString()).emit('new_notification', {
+        id: notificationResult.insertId,
+        type: 'message',
+        content: `New message from ${senderName}`,
+        reference_id: conversationId,
+        created_at: new Date(),
+        is_read: false
+      });
+      
+    } catch (error) {
+      console.error('Error handling message:', error);
+    }
   });
 
   socket.on('disconnect', () => {
@@ -41,7 +80,10 @@ io.on('connection', (socket) => {
 });
 
 // Enable CORS for all routes
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:3000", "http://localhost:5173"],
+  credentials: true
+}));
 
 // Parse JSON bodies
 app.use(express.json());
@@ -64,6 +106,12 @@ app.use('/api/guides', guideRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/tourists', touristRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/notifications', notificationRoutes);
+
+// Add a test route for notifications
+app.get('/api/notifications/test', (req, res) => {
+  res.json({ message: 'Notifications route is working' });
+});
 
 // Debug route to test if server is responding
 app.get('/api/test', (req, res) => {

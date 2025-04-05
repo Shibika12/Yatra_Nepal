@@ -22,8 +22,8 @@ const setupWebSocket = (server) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded.id;
-      socket.userType = decoded.user_type;
+      socket.userId = decoded.userId;
+      socket.userType = decoded.role;
       next();
     } catch (err) {
       next(new Error('Authentication error'));
@@ -80,6 +80,22 @@ const setupWebSocket = (server) => {
           'UPDATE conversations SET last_message = ?, last_message_time = NOW() WHERE id = ?',
           [message, conversationId]
         );
+
+        // Create notification for the receiver
+        const [senderResult] = await pool.query(
+          'SELECT name FROM users WHERE id = ?',
+          [senderId]
+        );
+        
+        const senderName = senderResult[0]?.name || 'Unknown User';
+        
+        // Create notification
+        await pool.query(
+          'INSERT INTO notifications (user_id, type, content, reference_id) VALUES (?, ?, ?, ?)',
+          [receiverId, 'message', `New message from ${senderName}`, conversationId]
+        );
+
+        console.log(`Created notification for user ${receiverId} about message from ${senderName}`);
       } catch (error) {
         console.error('Error handling message:', error);
         socket.emit('error', { message: 'Error sending message' });

@@ -216,8 +216,10 @@ function App() {
         />
 
         <Route path="/payment/:guideId" element={<Payment />} />
+        
+        {/* Add the missing route for /tourist/messages */}
         <Route 
-          path="/messages" 
+          path="/tourist/messages" 
           element={
             <AuthRoute>
               <TouristMessages />
