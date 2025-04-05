@@ -135,7 +135,7 @@ const TouristMessages = () => {
   const handleBackToGuideProfile = () => {
     // If we have a selected conversation, navigate back to that guide's profile
     if (selectedConversation) {
-      navigate(`/guide-profile/${selectedConversation.guide_id}`);
+      navigate(`/guide/${selectedConversation.guide_id}`);
     } else {
       // Otherwise go back to the previous page
       navigate(-1);
@@ -148,6 +148,9 @@ const TouristMessages = () => {
       <div className="messages-content">
         <div className="messages-sidebar">
           <div className="search-section">
+            <button className="back-button" onClick={handleBackToGuideProfile}>
+              <FaArrowLeft />
+            </button>
             <div className="search-box">
               <FaSearch />
               <input
@@ -199,9 +202,6 @@ const TouristMessages = () => {
             <>
               <div className="conversation-header">
                 <div className="header-left">
-                  <button className="back-button" onClick={handleBackToGuideProfile}>
-                    <FaArrowLeft />
-                  </button>
                   <div className="guide-info">
                     <div className="guide-avatar">
                       {selectedConversation.profile_picture ? (
