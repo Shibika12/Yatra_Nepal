@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Payment from './assets/pages/Payment/Payment';
 import AuthRoute from './utils/AuthRoute';
+import TouristMessages from './assets/pages/TouristMessages/TouristMessages';
 
 // Page imports
 import Home from "./assets/pages/Home/Home";
@@ -201,6 +202,25 @@ function App() {
           element={
             <AuthRoute>
               <Payment />
+            </AuthRoute>
+          } 
+        />
+
+        <Route 
+          path="/messages" 
+          element={
+            <AuthRoute>
+              <TouristMessages />
+            </AuthRoute>
+          } 
+        />
+
+        <Route path="/payment/:guideId" element={<Payment />} />
+        <Route 
+          path="/messages" 
+          element={
+            <AuthRoute>
+              <TouristMessages />
             </AuthRoute>
           } 
         />

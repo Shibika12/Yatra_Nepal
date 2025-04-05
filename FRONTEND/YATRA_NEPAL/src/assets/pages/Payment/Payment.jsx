@@ -1,11 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 import './Payment.scss';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
+import { toast } from 'react-toastify';
+
 // Temporarily use a placeholder image URL until you add a QR code image to your project
 const dummyQRCode = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/QR_code_for_mobile_English_Wikipedia.svg/1200px-QR_code_for_mobile_English_Wikipedia.svg.png";
 
 const Payment = () => {
+  const { guideId } = useParams();
+  const [guideDetails, setGuideDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGuideDetails();
+  }, [guideId]);
+
+  const fetchGuideDetails = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3002/api/guides/guide-profile/${guideId}`);
+      setGuideDetails(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching guide details:', error);
+      toast.error('Failed to load guide details');
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="loading">Loading payment details...</div>;
+  if (!guideDetails) return <div className="error">Guide not found</div>;
+
   return (
     <div className="payment-wrapper">
       <Navbar />
@@ -18,7 +45,11 @@ const Payment = () => {
               <div className="summary-details">
                 <div className="summary-item">
                   <span>Guide Name:</span>
-                  <span>John Doe</span>
+                  <span>{guideDetails.name}</span>
+                </div>
+                <div className="summary-item">
+                  <span>Guide Type:</span>
+                  <span>{guideDetails.guide_type}</span>
                 </div>
                 <div className="summary-item">
                   <span>Duration:</span>

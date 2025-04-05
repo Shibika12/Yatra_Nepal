@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
-import { FaStar, FaMapMarkerAlt, FaClock, FaLanguage, FaArrowLeft, FaComment } from 'react-icons/fa';
+import { FaStar, FaMapMarkerAlt, FaClock, FaLanguage, FaArrowLeft, FaComment, FaEnvelope } from 'react-icons/fa';
 import axios from 'axios';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import { toast } from 'react-toastify';
 import './GuideProfile.scss';
 
 const GuideProfile = () => {
@@ -16,8 +17,22 @@ const GuideProfile = () => {
   const [error, setError] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [availability, setAvailability] = useState([]);
+  const [userType, setUserType] = useState(null);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const [header, payload, signature] = token.split('.');
+        const decodedPayload = JSON.parse(atob(payload));
+        console.log('Decoded token payload:', decodedPayload);
+        setUserType(decodedPayload.type); // Update this to match your token structure
+      } catch (error) {
+        console.error('Error parsing token:', error);
+        toast.error('Session error. Please login again.');
+        navigate('/login');
+      }
+    }
     fetchGuideData();
     fetchGuideReviews();
     fetchAvailability();
@@ -84,6 +99,61 @@ const GuideProfile = () => {
       console.error('Error fetching reviews:', err);
       // Don't set error state here as reviews are not critical
       setReviews([]);
+    }
+  };
+
+  const handleBookNow = () => {
+    navigate(`/payment/${guide.id}`);
+  };
+
+  const handleStartChat = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please log in to chat with the guide');
+        navigate('/login');
+        return;
+      }
+
+      // Log the request details for debugging
+      console.log('Making chat request with guide ID:', guide.id);
+      
+      const response = await axios.post(
+        'http://localhost:3002/api/chat/conversations/create',
+        { 
+          guide_id: guide.id,
+          message: "Hi, I'm interested in booking you as a guide!"
+        },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Chat response:', response.data);
+
+      if (response.data && response.data.id) {
+        navigate(`/messages?conversation=${response.data.id}`);
+      } else {
+        navigate('/messages');
+      }
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      if (error.response) {
+        console.log('Error response:', error.response.data);
+        if (error.response.status === 404) {
+          toast.error('Chat service is currently unavailable. Please try again later.');
+        } else if (error.response.status === 401) {
+          toast.error('Please login again to continue.');
+          navigate('/login');
+        } else {
+          toast.error(error.response.data.error || 'Failed to start chat. Please try again.');
+        }
+      } else {
+        toast.error('Network error. Please check your connection.');
+      }
     }
   };
 
@@ -167,26 +237,12 @@ const GuideProfile = () => {
 
           <div className="profile-sidebar">
             <div className="action-buttons">
-              <button 
-                className="book-now-btn"
-                onClick={() => navigate('/payment')}
-              >
+              <button className="book-now-btn" onClick={handleBookNow}>
                 Book Now
               </button>
-              <button className="chat-btn">
-                <FaComment /> Chat with Guide
+              <button className="chat-button" onClick={handleStartChat}>
+                <FaEnvelope /> Chat with Guide
               </button>
-            </div>
-
-            <div className="chat-preview">
-              <h3>Chat</h3>
-              <div className="chat-messages">
-                <p className="chat-placeholder">Start a conversation with {guide.name}</p>
-              </div>
-              <div className="chat-input">
-                <input type="text" placeholder="Type a message..." disabled />
-                <button disabled>Send</button>
-              </div>
             </div>
 
             <div className="reviews-section">
