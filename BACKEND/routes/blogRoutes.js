@@ -9,25 +9,21 @@ const router = express.Router();
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
-    console.log('Authenticating request:', req.method, req.url);
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    console.log('Auth header:', authHeader);
-    console.log('Token:', token ? 'Present' : 'Missing');
-
     if (!token) {
-        console.log('No token provided');
         return res.status(401).json({ message: 'Authentication token required' });
     }
 
     try {
-        const user = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        console.log('Token verified, user:', user);
-        req.user = { user_id: user.userId };
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        req.user = { 
+            user_id: decoded.userId || decoded.user_id,
+            user_type: decoded.user_type
+        };
         next();
     } catch (error) {
-        console.log('Token verification failed:', error.message);
         return res.status(403).json({ message: 'Invalid or expired token' });
     }
 };
@@ -65,7 +61,7 @@ const upload = multer({
 router.post('/', authenticateToken, upload.array('images', 5), async (req, res) => {
     try {
         const { content } = req.body;
-        const user_id = req.user.user_id; // Assuming user info is added by auth middleware
+        const user_id = req.user.user_id;
 
         if (!content) {
             return res.status(400).json({ message: 'Content is required' });
@@ -102,37 +98,59 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
         const userName = userResult[0]?.name || 'Unknown User';
 
         // Create notification for admin
-        const [notificationResult] = await pool.query(
-            'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
-            [29, 'blog', `New blog post from ${userName}`, blog_id] // Admin user_id is 29
+        try {
+            const [adminNotificationResult] = await pool.query(
+                'INSERT INTO notifications (user_id, type, content, reference_id, is_read) VALUES (?, ?, ?, ?, ?)',
+                [29, 'blog', `New blog post from ${userName}`, blog_id, false]
+            );
+
+            // Emit notification to admin if socket exists
+            if (req.app.get('io')) {
+                const io = req.app.get('io');
+                io.to('admin').emit('new_notification', {
+                    id: adminNotificationResult.insertId,
+                    user_id: 29,
+                    type: 'blog',
+                    content: `New blog post from ${userName}`,
+                    reference_id: blog_id,
+                    created_at: new Date(),
+                    is_read: false
+                });
+            }
+        } catch (error) {
+            // Continue even if admin notification fails
+        }
+
+        // Get all tourist users to notify them about the new blog
+        const [tourists] = await pool.query(
+            'SELECT user_id FROM Users WHERE user_type = ? AND user_id != ?',
+            ['Tourist', user_id]
         );
 
-        console.log('Created notification for admin:', notificationResult.insertId);
+        // Create notifications for all tourists
+        for (const tourist of tourists) {
+            try {
+                const [notificationResult] = await pool.query(
+                    'INSERT INTO notifications (user_id, type, content, reference_id, is_read) VALUES (?, ?, ?, ?, ?)',
+                    [tourist.user_id, 'blog', `New blog post from ${userName}`, blog_id, false]
+                );
 
-        // Emit socket events for real-time notification
-        if (req.app.get('io')) {
-            const io = req.app.get('io');
-            
-            console.log('Emitting new_blog event to admin room');
-            // Emit to admin's room
-            io.to('admin').emit('new_blog', {
-                blog_id: blog_id,
-                author_name: userName,
-                content: content.substring(0, 100) + '...' // First 100 characters
-            });
-
-            console.log('Emitting new_notification event to admin room');
-            // Emit notification
-            io.to('admin').emit('new_notification', {
-                id: notificationResult.insertId,
-                type: 'blog',
-                content: `New blog post from ${userName}`,
-                reference_id: blog_id,
-                created_at: new Date(),
-                is_read: false
-            });
-        } else {
-            console.log('Socket.io instance not found in app');
+                // Emit notification to this specific tourist
+                if (req.app.get('io')) {
+                    const io = req.app.get('io');
+                    io.to(tourist.user_id.toString()).emit('new_notification', {
+                        id: notificationResult.insertId,
+                        user_id: tourist.user_id,
+                        type: 'blog',
+                        content: `New blog post from ${userName}`,
+                        reference_id: blog_id,
+                        created_at: new Date(),
+                        is_read: false
+                    });
+                }
+            } catch (error) {
+                // Continue even if individual tourist notification fails
+            }
         }
 
         await pool.query('COMMIT');
@@ -144,8 +162,10 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
 
     } catch (error) {
         await pool.query('ROLLBACK');
-        console.error('Error creating blog post:', error);
-        res.status(500).json({ message: 'Failed to create blog post' });
+        res.status(500).json({ 
+            message: 'Failed to create blog post', 
+            error: error.message
+        });
     }
 });
 

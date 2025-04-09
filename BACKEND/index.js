@@ -35,7 +35,7 @@ io.use((socket, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     socket.userId = decoded.userId;
-    socket.userRole = decoded.role;
+    socket.userRole = decoded.user_type;
     next();
   } catch (err) {
     next(new Error('Authentication error'));
@@ -59,6 +59,13 @@ io.on('connection', (socket) => {
   if (socket.userRole === 'Admin') {
     socket.join('admin');
     console.log(`Admin ${socket.userId} joined admin room`);
+  }
+
+  // If user is a tourist, join tourist room
+  if (socket.userRole === 'Tourist') {
+    socket.join(`tourist_${socket.userId}`);
+    socket.join('tourists'); // Join a general tourists room for broadcast notifications
+    console.log(`Tourist ${socket.userId} joined tourist room and general tourists room`);
   }
 
   socket.on('join_admin', () => {

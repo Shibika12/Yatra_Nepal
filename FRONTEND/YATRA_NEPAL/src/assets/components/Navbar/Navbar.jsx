@@ -5,6 +5,7 @@ import { FaBell } from 'react-icons/fa';
 import LoginPrompt from '../LoginPrompt/LoginPrompt';
 import axios from 'axios';
 import io from 'socket.io-client';
+import { Toaster, toast } from 'react-hot-toast';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./Navbar.scss";
 
@@ -64,6 +65,16 @@ const Navbar = () => {
       auth: { token }
     });
 
+    socketRef.current.on('connect', () => {
+      console.log('Socket connected successfully');
+      // Fetch notifications again after successful connection
+      fetchNotifications();
+    });
+
+    socketRef.current.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
     socketRef.current.on('receive_message', (message) => {
       console.log('Received message:', message);
       // Fetch latest notifications when a message is received
@@ -72,9 +83,22 @@ const Navbar = () => {
 
     socketRef.current.on('new_notification', (notification) => {
       console.log('Received new notification:', notification);
-      setNotifications(prev => [notification, ...prev]);
+      setNotifications(prev => {
+        // Check if notification already exists
+        const exists = prev.some(n => n.id === notification.id);
+        if (exists) {
+          return prev;
+        }
+        return [notification, ...prev];
+      });
       setUnreadCount(prev => prev + 1);
     });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
   };
 
   const fetchNotifications = async () => {
@@ -102,7 +126,7 @@ const Navbar = () => {
         }
       });
       
-      console.log('Notifications response:', response.data);
+      console.log('Raw notifications response:', response.data);
       setNotifications(response.data);
       setUnreadCount(response.data.filter(notif => !notif.is_read).length);
     } catch (error) {
@@ -125,28 +149,40 @@ const Navbar = () => {
         return;
       }
 
-      console.log('Marking notification as read:', notification.id);
-      
-      const response = await axios.put(
-        `http://localhost:3002/api/notifications/${notification.id}/read`,
-        {},
-        {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+      // Only try to mark as read if the notification has an ID
+      if (notification.id) {
+        console.log('Marking notification as read:', notification.id);
+        
+        const response = await axios.put(
+          `http://localhost:3002/api/notifications/${notification.id}/read`,
+          {},
+          {
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
-        }
-      );
+        );
 
-      console.log('Mark as read response:', response.data);
+        console.log('Mark as read response:', response.data);
 
-      // Update local state
-      setNotifications(prev =>
-        prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
-      );
-      setUnreadCount(prev => prev - 1);
+        // Update local state
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
+        );
+        setUnreadCount(prev => prev - 1);
+      } else {
+        // For notifications without ID, just remove them from the list
+        setNotifications(prev => 
+          prev.filter(n => 
+            !(n.type === notification.type && 
+              n.reference_id === notification.reference_id)
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
 
-      // Navigate to messages page based on user role
+      // Navigate based on notification type
       if (notification.type === 'message') {
         const userRole = localStorage.getItem('userRole');
         console.log('User role:', userRole);
@@ -163,6 +199,9 @@ const Navbar = () => {
           // Fallback to the general messages route
           navigate(`/messages?conversation=${notification.reference_id}`);
         }
+      } else if (notification.type === 'blog') {
+        // Navigate to the blog page
+        navigate('/blogs');
       }
       
       setShowNotifications(false);
@@ -230,6 +269,7 @@ const Navbar = () => {
 
   return (
     <div>
+      <Toaster position="top-right" />
       <header className='Header'>
         <h1 className="logoText" onClick={() => handleNavigation("/home")}>
           Yatra Nepal
@@ -260,11 +300,11 @@ const Navbar = () => {
                     {notifications.length === 0 ? (
                       <div className="no-notifications">No notifications</div>
                     ) : (
-                      notifications.map((notification) => {
+                      notifications.map((notification, index) => {
                         console.log('Rendering notification:', notification);
                         return (
                           <div
-                            key={notification.id}
+                            key={notification.id || `notification-${index}`}
                             className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
                             onClick={() => handleNotificationClick(notification)}
                           >

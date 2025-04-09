@@ -72,18 +72,25 @@ export const BlogWriting = () => {
         return;
       }
 
+      console.log('Creating blog post with content:', blogData.content);
+      console.log('Number of images:', blogData.imageFiles.length);
+
       const formData = new FormData();
       formData.append('content', blogData.content);
-      blogData.imageFiles.forEach(file => {
+      blogData.imageFiles.forEach((file, index) => {
+        console.log(`Adding image ${index + 1}:`, file.name);
         formData.append('images', file);
       });
 
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      await axios.post('http://localhost:3002/api/blogs', formData, {
+      console.log('Making request to create blog post...');
+      const response = await axios.post('http://localhost:3002/api/blogs', formData, {
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });
+
+      console.log('Blog post created successfully:', response.data);
 
       // Clear form and refresh blogs
       setBlogData({
@@ -93,8 +100,12 @@ export const BlogWriting = () => {
       });
       fetchBlogs();
     } catch (error) {
-      console.error('Error creating blog post:', error);
-      setError('Failed to create blog post');
+      console.error('Error creating blog post:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      setError(error.response?.data?.message || 'Failed to create blog post');
     }
   };
 
