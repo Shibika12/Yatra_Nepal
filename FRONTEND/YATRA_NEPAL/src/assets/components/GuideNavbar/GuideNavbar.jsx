@@ -12,13 +12,24 @@ const GuideNavbar = () => {
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const token = localStorage.getItem('token');
+  const [unreadReviews, setUnreadReviews] = useState(0);
+
+  // Helper function to get headers with token
+  const getHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
 
   useEffect(() => {
-    // Fetch initial unread count
+    // Fetch initial unread counts
     fetchUnreadCount();
+    fetchUnreadReviews();
 
     // Set up socket connection for real-time updates
+    const token = localStorage.getItem('token');
     if (token) {
       const socket = io('http://localhost:3002', {
         auth: { token }
@@ -32,24 +43,74 @@ const GuideNavbar = () => {
         }
       });
 
+      // Listen for new reviews
+      socket.on('new_review', () => {
+        // Only increment unread reviews if not on reviews page
+        if (location.pathname !== '/guide/reviews') {
+          setUnreadReviews(prev => prev + 1);
+        }
+      });
+
       // Clean up socket connection
       return () => socket.disconnect();
     }
-  }, [token, location.pathname]);
+  }, [location.pathname]);
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/chat/guide/unread-count', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get('http://localhost:3002/api/chat/guide/conversations', {
+        headers: getHeaders()
       });
       
-      // Set total unread count
-      const totalUnreadCount = response.data.unreadCount || 0;
+      // Calculate total unread count from all conversations
+      const totalUnreadCount = response.data.reduce((total, conversation) => {
+        return total + (conversation.unread_count || 0);
+      }, 0);
+      
       setUnreadCount(totalUnreadCount);
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      console.error('Error fetching unread messages count:', error);
     }
   };
+
+  const fetchUnreadReviews = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3002/api/guides/unread-reviews-count', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      setUnreadReviews(response.data.unreadCount || 0);
+    } catch (error) {
+      console.error('Error fetching unread reviews count:', error);
+    }
+  };
+
+  // Reset unread reviews count when visiting reviews page
+  useEffect(() => {
+    if (location.pathname === '/guide/reviews' && unreadReviews > 0) {
+      setUnreadReviews(0);
+      // Mark reviews as read in backend
+      const token = localStorage.getItem('token');
+      axios.post('http://localhost:3002/api/guides/mark-reviews-read', {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).catch(error => {
+        console.error('Error marking reviews as read:', error);
+      });
+    }
+  }, [location.pathname, unreadReviews]);
+
+  // Reset unread messages count when visiting messages page
+  useEffect(() => {
+    if (location.pathname === '/guide/messages' && unreadCount > 0) {
+      setUnreadCount(0);
+    }
+  }, [location.pathname, unreadCount]);
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -79,6 +140,7 @@ const GuideNavbar = () => {
         </Link>
         <Link to="/guide/reviews" className={isActive('/guide/reviews')}>
           <FaStar /> Reviews
+          {unreadReviews > 0 && <span className="notification-badge">{unreadReviews}</span>}
         </Link>
         <Link to="/guide/messages" className={isActive('/guide/messages')}>
           <FaComments /> Messages

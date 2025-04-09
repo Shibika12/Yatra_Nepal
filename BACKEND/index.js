@@ -11,6 +11,7 @@ import touristRoutes from './routes/touristRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import pool from './lib/db.js';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 const server = createServer(app);
@@ -24,8 +25,35 @@ const io = new Server(server, {
   }
 });
 
+// Socket.IO authentication middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('Authentication error'));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    socket.userId = decoded.userId;
+    socket.userRole = decoded.role;
+    next();
+  } catch (err) {
+    next(new Error('Authentication error'));
+  }
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
+  console.log('User connected:', socket.userId, 'Role:', socket.userRole);
+  
+  // Join user's room for private messages
+  socket.join(socket.userId.toString());
+  
+  // If user is a guide, join guide-specific room
+  if (socket.userRole === 'Guide') {
+    socket.join(`guide_${socket.userId}`);
+  }
+
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conversation_${conversationId}`);
   });
@@ -68,7 +96,15 @@ io.on('connection', (socket) => {
       console.error('Error handling message:', error);
     }
   });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.userId);
+  });
 });
+
+// Make io available to routes
+app.set('io', io);
 
 // Enable CORS for all routes
 app.use(cors({

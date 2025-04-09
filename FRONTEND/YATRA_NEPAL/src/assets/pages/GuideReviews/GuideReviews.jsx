@@ -39,6 +39,16 @@ const GuideReviews = () => {
         console.log('Reviews response:', response.data);
         setReviews(response.data);
         setLoading(false);
+
+        // Mark reviews as read
+        try {
+          await axios.post('http://localhost:3002/api/guides/mark-reviews-read', {}, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } catch (markError) {
+          console.error('Error marking reviews as read:', markError);
+          // Don't show error to user as this is not critical
+        }
       } catch (error) {
         console.error('Error fetching reviews:', error);
         if (error.response?.status === 401) {

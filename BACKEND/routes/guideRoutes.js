@@ -3,6 +3,7 @@ import pool from '../lib/db.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import authenticateToken from '../middleware/authenticateToken.js';
 
 const router = express.Router();
 
@@ -257,7 +258,7 @@ router.post('/reviews', async (req, res) => {
 
         // Verify that the reviewer is a tourist
         const [userCheck] = await pool.query(
-            'SELECT user_type FROM Users WHERE user_id = ?',
+            'SELECT user_type, name FROM Users WHERE user_id = ?',
             [user_id]
         );
 
@@ -290,11 +291,39 @@ router.post('/reviews', async (req, res) => {
             // Continue even if this fails
         }
 
-        // Add the review
+        // Add the review with is_read set to FALSE
         const [result] = await pool.query(
-            'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text) VALUES (?, ?, ?, ?)',
+            'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text, is_read) VALUES (?, ?, ?, ?, FALSE)',
             [guideCheck[0].guide_id, user_id, rating, review_text]
         );
+
+        // Create a notification for the guide
+        const [notificationResult] = await pool.query(
+            'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
+            [guide_user_id, 'review', `New review from ${userCheck[0].name}`, result.insertId]
+        );
+
+        // Emit socket events for real-time notification
+        if (req.app.get('io')) {
+            const io = req.app.get('io');
+            
+            // Emit to guide's specific room
+            io.to(`guide_${guide_user_id}`).emit('new_review', {
+                review_id: result.insertId,
+                rating: rating,
+                reviewer_name: userCheck[0].name
+            });
+
+            // Emit notification
+            io.to(`guide_${guide_user_id}`).emit('new_notification', {
+                id: notificationResult.insertId,
+                type: 'review',
+                content: `New review from ${userCheck[0].name}`,
+                reference_id: result.insertId,
+                created_at: new Date(),
+                is_read: false
+            });
+        }
 
         res.status(201).json({
             message: 'Review added successfully',
@@ -536,6 +565,74 @@ router.post('/guide-availability/:userId', async (req, res) => {
         console.error('Error updating guide availability:', error);
         res.status(500).json({ message: 'Failed to update guide availability' });
     }
+});
+
+// Get unread reviews count
+router.get('/unread-reviews-count', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('Fetching unread reviews count for user:', userId);
+    
+    // Get guide_id from guides table
+    const [guideResult] = await pool.query(
+      'SELECT guide_id FROM guides WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!guideResult.length) {
+      console.log('No guide found for user:', userId);
+      return res.json({ unreadCount: 0 });
+    }
+
+    const guideId = guideResult[0].guide_id;
+    console.log('Found guide_id:', guideId);
+
+    // Get count of unread reviews
+    const [result] = await pool.query(
+      'SELECT COUNT(*) as count FROM guide_reviews WHERE guide_id = ? AND is_read = FALSE',
+      [guideId]
+    );
+
+    console.log('Unread reviews count:', result[0].count);
+    res.json({ unreadCount: result[0].count });
+  } catch (error) {
+    console.error('Error fetching unread reviews count:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Mark reviews as read
+router.post('/mark-reviews-read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('Marking reviews as read for user:', userId);
+    
+    // Get guide_id from guides table
+    const [guideResult] = await pool.query(
+      'SELECT guide_id FROM guides WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!guideResult.length) {
+      console.log('No guide found for user:', userId);
+      return res.json({ message: 'No guide found' });
+    }
+
+    const guideId = guideResult[0].guide_id;
+    console.log('Found guide_id:', guideId);
+
+    // Mark all reviews as read
+    const [updateResult] = await pool.query(
+      'UPDATE guide_reviews SET is_read = TRUE WHERE guide_id = ? AND is_read = FALSE',
+      [guideId]
+    );
+
+    console.log('Updated reviews:', updateResult.affectedRows);
+    res.json({ message: 'Reviews marked as read', updatedCount: updateResult.affectedRows });
+  } catch (error) {
+    console.error('Error marking reviews as read:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 export default router; 

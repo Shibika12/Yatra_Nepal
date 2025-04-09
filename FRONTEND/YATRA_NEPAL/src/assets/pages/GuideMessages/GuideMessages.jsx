@@ -151,6 +151,11 @@ const GuideMessages = () => {
         setSelectedConversation(conversation);
         setMessages(response.data || []);
         scrollToBottom();
+        
+        // Emit mark_read socket event
+        if (socketRef.current) {
+          socketRef.current.emit('mark_read', { conversationId });
+        }
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
