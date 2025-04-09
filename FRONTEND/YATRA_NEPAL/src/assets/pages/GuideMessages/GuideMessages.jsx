@@ -70,20 +70,42 @@ const GuideMessages = () => {
       // Listen for new messages
       socketRef.current.on('receive_message', (message) => {
         console.log('Received message in GuideMessages:', message);
-        setMessages(prev => {
-          // Check if message already exists in the array
-          const messageExists = prev.some(msg => 
-            msg.message_id === message.message_id || 
-            (msg.message === message.message && 
-             msg.sender_id === message.sender_id && 
-             msg.created_at === message.created_at)
-          );
-          
-          if (!messageExists) {
-            return [...prev, message];
+        
+        // Update messages if the conversation is selected
+        if (selectedConversation?.id === message.conversation_id) {
+          setMessages(prev => {
+            const messageExists = prev.some(msg => 
+              msg.message_id === message.message_id || 
+              (msg.message === message.message && 
+               msg.sender_id === message.sender_id && 
+               msg.created_at === message.created_at)
+            );
+            
+            if (!messageExists) {
+              return [...prev, message];
+            }
+            return prev;
+          });
+        }
+
+        // Update conversation list to show new unread count
+        setConversations(prev => prev.map(conv => {
+          if (conv.id === message.conversation_id) {
+            // Only increment unread count if this conversation isn't currently selected
+            const newUnreadCount = selectedConversation?.id === conv.id 
+              ? 0 
+              : (conv.unread_count || 0) + 1;
+            
+            return {
+              ...conv,
+              last_message: message.message,
+              last_message_time: message.created_at,
+              unread_count: newUnreadCount
+            };
           }
-          return prev;
-        });
+          return conv;
+        }));
+
         scrollToBottom();
       });
 
@@ -215,7 +237,12 @@ const GuideMessages = () => {
                   <FaUser />
                 </div>
                 <div className="conversation-info">
-                  <div className="tourist-name">{conv.tourist_name}</div>
+                  <div className="tourist-name">
+                    {conv.tourist_name}
+                    {conv.unread_count > 0 && (
+                      <span className="unread-count">{conv.unread_count}</span>
+                    )}
+                  </div>
                   <div className="last-message">{conv.last_message}</div>
                   <div className="message-meta">
                     <span className="date">{formatDate(conv.last_message_time)}</span>
@@ -224,7 +251,6 @@ const GuideMessages = () => {
                     </span>
                   </div>
                 </div>
-                {conv.unread_count > 0 && <div className="unread-badge" />}
               </div>
             ))}
           </div>

@@ -40,7 +40,8 @@
       }
       
       &:hover, &.active {
-        background: #34495e;
+        background:  #6b6e97;
+      
         transform: translateX(5px);
       }
     }
@@ -94,3 +95,9 @@
     }
   }
 } 
+.notification-badge{
+  color: white;
+background-color: red;
+  border-radius: 10px;
+  padding: 0 6px;
+}
