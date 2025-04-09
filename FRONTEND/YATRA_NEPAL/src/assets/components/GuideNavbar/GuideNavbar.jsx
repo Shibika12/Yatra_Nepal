@@ -43,10 +43,10 @@ const GuideNavbar = () => {
         }
       });
 
-      // Listen for new reviews
-      socket.on('new_review', () => {
-        // Only increment unread reviews if not on reviews page
-        if (location.pathname !== '/guide/reviews') {
+      // Listen for new notifications
+      socket.on('new_notification', (notification) => {
+        // Only increment unread reviews if not on reviews page and notification is of type 'review'
+        if (location.pathname !== '/guide/reviews' && notification.type === 'review') {
           setUnreadReviews(prev => prev + 1);
         }
       });
@@ -75,12 +75,8 @@ const GuideNavbar = () => {
 
   const fetchUnreadReviews = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:3002/api/guides/unread-reviews-count', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: getHeaders()
       });
       setUnreadReviews(response.data.unreadCount || 0);
     } catch (error) {

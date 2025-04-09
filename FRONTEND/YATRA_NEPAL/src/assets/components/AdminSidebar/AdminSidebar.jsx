@@ -12,6 +12,7 @@ const AdminSidebar = () => {
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadBlogs, setUnreadBlogs] = useState(0);
+  const [unreadReviews, setUnreadReviews] = useState(0);
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -25,8 +26,9 @@ const AdminSidebar = () => {
       return;
     }
 
-    // Fetch initial unread blogs count
+    // Fetch initial unread counts
     fetchUnreadBlogs();
+    fetchUnreadReviews();
 
     // Set up socket connection
     const token = localStorage.getItem('token');
@@ -57,6 +59,20 @@ const AdminSidebar = () => {
         }
       });
 
+      // Listen for new review notifications
+      newSocket.on('new_review', (data) => {
+        console.log('Received new_review event:', data);
+        console.log('Current pathname:', location.pathname);
+        if (location.pathname !== '/admin/reviews') {
+          console.log('Incrementing unread reviews count');
+          setUnreadReviews(prev => {
+            const newCount = prev + 1;
+            console.log('New unread reviews count:', newCount);
+            return newCount;
+          });
+        }
+      });
+
       // Listen for new notifications
       newSocket.on('new_notification', (data) => {
         console.log('Received new_notification event:', data);
@@ -67,6 +83,13 @@ const AdminSidebar = () => {
             console.log('New unread blogs count:', newCount);
             return newCount;
           });
+        } else if (data.type === 'review' && location.pathname !== '/admin/reviews') {
+          console.log('Incrementing unread reviews count for notification');
+          setUnreadReviews(prev => {
+            const newCount = prev + 1;
+            console.log('New unread reviews count:', newCount);
+            return newCount;
+          });
         }
       });
 
@@ -75,6 +98,7 @@ const AdminSidebar = () => {
         console.log('Socket connected successfully');
         // Fetch notifications again after successful connection
         fetchUnreadBlogs();
+        fetchUnreadReviews();
       });
 
       newSocket.on('connect_error', (error) => {
@@ -122,6 +146,46 @@ const AdminSidebar = () => {
       setUnreadBlogs(unreadCount);
     } catch (error) {
       console.error('Error fetching unread blogs:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Error status:', error.response.status);
+      }
+    }
+  };
+
+  const fetchUnreadReviews = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
+      if (!token || !user || !user.user_id) {
+        console.log('No token or user data found, skipping unread reviews fetch');
+        return;
+      }
+
+      console.log('Fetching unread review notifications for user:', user.user_id);
+      const response = await axios.get('http://localhost:3002/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Raw notifications response:', response.data);
+      
+      // Count unread review notifications
+      const unreadCount = response.data.filter(notif => {
+        console.log('Checking notification:', notif);
+        const isUnreadReview = notif.type === 'review' && !notif.is_read;
+        console.log('Is unread review:', isUnreadReview);
+        return isUnreadReview;
+      }).length;
+
+      console.log('Final unread review notifications count:', unreadCount);
+      setUnreadReviews(unreadCount);
+    } catch (error) {
+      console.error('Error fetching unread reviews:', error);
       if (error.response) {
         console.error('Error response:', error.response.data);
         console.error('Error status:', error.response.status);
@@ -177,6 +241,9 @@ const AdminSidebar = () => {
         <Link to="/admin/reviews" className={`nav-item ${isActive('/admin/reviews')}`}>
           <FaStar />
           <span>Guide Reviews</span>
+          {unreadReviews > 0 && (
+            <span className="notification-badge">{unreadReviews}</span>
+          )}
         </Link>
         <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings')}`}>
           <FaCog />

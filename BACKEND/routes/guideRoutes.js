@@ -244,98 +244,124 @@ router.get('/reviews/:guideId', async (req, res) => {
     }
 });
 
-// Add a new review
-router.post('/reviews', async (req, res) => {
+// Create a new review
+router.post('/reviews/:guideId', authenticateToken, async (req, res) => {
     try {
-        const { user_id, guide_user_id, rating, review_text } = req.body;
+        const { rating, review_text } = req.body;
+        const tourist_id = req.user.userId || req.user.user_id;
+        const guide_user_id = req.params.guideId;
 
-        if (!user_id || !guide_user_id || !rating || !review_text) {
-            return res.status(400).json({ 
-                message: 'Missing required fields',
-                received: { user_id, guide_user_id, rating, review_text }
-            });
+        // Validate input
+        if (!rating || !review_text) {
+            return res.status(400).json({ message: 'Rating and review text are required' });
         }
 
-        // Verify that the reviewer is a tourist
+        // Start transaction
+        await pool.query('START TRANSACTION');
+
+        // First check if the user exists and is a guide
         const [userCheck] = await pool.query(
-            'SELECT user_type, name FROM Users WHERE user_id = ?',
-            [user_id]
+            'SELECT user_id, user_type FROM Users WHERE user_id = ?',
+            [guide_user_id]
         );
 
         if (!userCheck.length) {
-            return res.status(404).json({ message: 'User not found' });
+            await pool.query('ROLLBACK');
+            return res.status(404).json({ message: 'Guide not found' });
         }
 
-        if (userCheck[0].user_type !== 'Tourist') {
-            return res.status(403).json({ message: 'Only tourists can submit reviews' });
+        if (userCheck[0].user_type !== 'Guide') {
+            await pool.query('ROLLBACK');
+            return res.status(400).json({ message: 'User is not a guide' });
         }
 
-        // Get guide_id from guides table using guide's user_id
-        const [guideCheck] = await pool.query(
+        // Get guide_id from guides table using user_id
+        const [guideResult] = await pool.query(
             'SELECT guide_id FROM guides WHERE user_id = ?',
             [guide_user_id]
         );
 
-        if (!guideCheck.length) {
-            return res.status(404).json({ message: 'Guide not found' });
+        let guide_id;
+        if (!guideResult.length) {
+            // If guide entry doesn't exist, create one
+            const [insertResult] = await pool.query(
+                'INSERT INTO guides (user_id) VALUES (?)',
+                [guide_user_id]
+            );
+            guide_id = insertResult.insertId;
+        } else {
+            guide_id = guideResult[0].guide_id;
         }
 
-        // First, try to add review_date column if it doesn't exist
-        try {
-            await pool.query(`
-                ALTER TABLE guide_reviews 
-                ADD COLUMN IF NOT EXISTS review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            `);
-        } catch (err) {
-            console.error('Error adding review_date column:', err);
-            // Continue even if this fails
-        }
-
-        // Add the review with is_read set to FALSE
-        const [result] = await pool.query(
-            'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text, is_read) VALUES (?, ?, ?, ?, FALSE)',
-            [guideCheck[0].guide_id, user_id, rating, review_text]
+        // Check if tourist has already reviewed this guide
+        const [existingReview] = await pool.query(
+            'SELECT review_id FROM guide_reviews WHERE guide_id = ? AND user_id = ?',
+            [guide_id, tourist_id]
         );
 
-        // Create a notification for the guide
+        if (existingReview.length > 0) {
+            await pool.query('ROLLBACK');
+            return res.status(400).json({ message: 'You have already reviewed this guide' });
+        }
+
+        // Insert the review
+        const [reviewResult] = await pool.query(
+            'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text, is_read) VALUES (?, ?, ?, ?, FALSE)',
+            [guide_id, tourist_id, rating, review_text]
+        );
+
+        // Get tourist name for notification
+        const [touristResult] = await pool.query(
+            'SELECT name FROM Users WHERE user_id = ?',
+            [tourist_id]
+        );
+        const touristName = touristResult[0]?.name || 'A tourist';
+
+        // Create notification for admin
         const [notificationResult] = await pool.query(
             'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
-            [guide_user_id, 'review', `New review from ${userCheck[0].name}`, result.insertId]
+            [29, 'review', `New guide review from ${touristName}`, reviewResult.insertId]
         );
+
+        console.log('Created review notification for admin:', notificationResult.insertId);
 
         // Emit socket events for real-time notification
         if (req.app.get('io')) {
             const io = req.app.get('io');
             
-            // Emit to guide's specific room
-            io.to(`guide_${guide_user_id}`).emit('new_review', {
-                review_id: result.insertId,
-                rating: rating,
-                reviewer_name: userCheck[0].name
+            console.log('Emitting new_review event to admin room');
+            // Emit to admin's room
+            io.to('admin').emit('new_review', {
+                review_id: reviewResult.insertId,
+                tourist_name: touristName,
+                rating: rating
             });
 
+            console.log('Emitting new_notification event to admin room');
             // Emit notification
-            io.to(`guide_${guide_user_id}`).emit('new_notification', {
+            io.to('admin').emit('new_notification', {
                 id: notificationResult.insertId,
                 type: 'review',
-                content: `New review from ${userCheck[0].name}`,
-                reference_id: result.insertId,
+                content: `New guide review from ${touristName}`,
+                reference_id: reviewResult.insertId,
                 created_at: new Date(),
                 is_read: false
             });
+        } else {
+            console.log('Socket.io instance not found in app');
         }
 
+        await pool.query('COMMIT');
+
         res.status(201).json({
-            message: 'Review added successfully',
-            review_id: result.insertId
+            message: 'Review submitted successfully',
+            review_id: reviewResult.insertId
         });
 
     } catch (error) {
-        console.error('Error adding review:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message
-        });
+        await pool.query('ROLLBACK');
+        console.error('Error submitting review:', error);
+        res.status(500).json({ message: 'Failed to submit review', error: error.message });
     }
 });
 

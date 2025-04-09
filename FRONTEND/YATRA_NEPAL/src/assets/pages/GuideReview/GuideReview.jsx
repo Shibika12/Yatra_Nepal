@@ -134,8 +134,11 @@ const GuideReview = () => {
       console.log('Submitting review:', reviewData);
 
       const response = await axios.post(
-        'http://localhost:3002/api/guides/reviews',
-        reviewData,
+        `http://localhost:3002/api/guides/reviews/${selectedGuide}`,
+        {
+          rating: parseInt(rating),
+          review_text: reviewText.trim()
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
