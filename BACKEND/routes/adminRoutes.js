@@ -351,4 +351,25 @@ router.get('/guides/distribution', async (req, res) => {
   }
 });
 
+// Get pending guides count
+router.get('/pending-guides-count', async (req, res) => {
+  try {
+    console.log('Fetching pending guides count...');
+    const [result] = await pool.query(`
+      SELECT COUNT(DISTINCT u.user_id) as count
+      FROM Users u
+      INNER JOIN GuideDocuments gd ON u.user_id = gd.user_id
+      WHERE u.user_type = 'Guide' 
+      AND gd.status = 'pending'
+      AND u.is_verified = 0
+    `);
+    
+    console.log('Pending guides count:', result[0].count);
+    res.json({ count: result[0].count });
+  } catch (error) {
+    console.error('Error fetching pending guides count:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router; 

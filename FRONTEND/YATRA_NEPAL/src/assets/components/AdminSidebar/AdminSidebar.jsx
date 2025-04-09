@@ -13,6 +13,7 @@ const AdminSidebar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadBlogs, setUnreadBlogs] = useState(0);
   const [unreadReviews, setUnreadReviews] = useState(0);
+  const [pendingGuides, setPendingGuides] = useState(0);
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -29,6 +30,7 @@ const AdminSidebar = () => {
     // Fetch initial unread counts
     fetchUnreadBlogs();
     fetchUnreadReviews();
+    fetchPendingGuides();
 
     // Set up socket connection
     const token = localStorage.getItem('token');
@@ -73,6 +75,20 @@ const AdminSidebar = () => {
         }
       });
 
+      // Listen for new guide validation submissions
+      newSocket.on('new_guide_validation', (data) => {
+        console.log('Received new_guide_validation event:', data);
+        console.log('Current pathname:', location.pathname);
+        if (location.pathname !== '/admin/dashboard') {
+          console.log('Incrementing pending guides count');
+          setPendingGuides(prev => {
+            const newCount = prev + 1;
+            console.log('New pending guides count:', newCount);
+            return newCount;
+          });
+        }
+      });
+
       // Listen for new notifications
       newSocket.on('new_notification', (data) => {
         console.log('Received new_notification event:', data);
@@ -90,6 +106,13 @@ const AdminSidebar = () => {
             console.log('New unread reviews count:', newCount);
             return newCount;
           });
+        } else if (data.type === 'guide_validation' && location.pathname !== '/admin/dashboard') {
+          console.log('Incrementing pending guides count for notification');
+          setPendingGuides(prev => {
+            const newCount = prev + 1;
+            console.log('New pending guides count:', newCount);
+            return newCount;
+          });
         }
       });
 
@@ -99,6 +122,7 @@ const AdminSidebar = () => {
         // Fetch notifications again after successful connection
         fetchUnreadBlogs();
         fetchUnreadReviews();
+        fetchPendingGuides();
       });
 
       newSocket.on('connect_error', (error) => {
@@ -193,6 +217,36 @@ const AdminSidebar = () => {
     }
   };
 
+  const fetchPendingGuides = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
+      if (!token || !user || !user.user_id) {
+        console.log('No token or user data found, skipping pending guides fetch');
+        return;
+      }
+
+      console.log('Fetching pending guides count for user:', user.user_id);
+      const response = await axios.get('http://localhost:3002/api/admin/pending-guides-count', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Pending guides count response:', response.data);
+      setPendingGuides(response.data.count || 0);
+    } catch (error) {
+      console.error('Error fetching pending guides count:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Error status:', error.response.status);
+      }
+    }
+  };
+
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
   };
@@ -226,6 +280,9 @@ const AdminSidebar = () => {
         <Link to="/admin/dashboard" className={`nav-item ${isActive('/admin/dashboard')}`}>
           <FaUserCheck />
           <span>Pending Guides</span>
+          {pendingGuides > 0 && (
+            <span className="notification-badge">{pendingGuides}</span>
+          )}
         </Link>
         <Link to="/admin/users" className={`nav-item ${isActive('/admin/users')}`}>
           <FaUsers />

@@ -10,36 +10,16 @@ const AdminReviews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const markReviewNotificationsAsRead = async () => {
+  const markNotificationsAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
-
-      // Get all unread review notifications
-      const response = await axios.get('http://localhost:3002/api/notifications', {
+      await axios.put('http://localhost:3002/api/notifications/read-all', {}, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         }
       });
-
-      const unreadReviewNotifications = response.data.filter(
-        notif => notif.type === 'review' && !notif.is_read
-      );
-
-      // Mark each notification as read
-      for (const notification of unreadReviewNotifications) {
-        await axios.put(
-          `http://localhost:3002/api/notifications/${notification.id}/read`,
-          {},
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-      }
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
+    } catch (err) {
+      console.error('Error marking notifications as read:', err);
     }
   };
 
@@ -58,8 +38,8 @@ const AdminReviews = () => {
         setReviews(response.data);
         setLoading(false);
 
-        // Mark review notifications as read after fetching reviews
-        await markReviewNotificationsAsRead();
+        // Mark notifications as read after fetching reviews
+        await markNotificationsAsRead();
       } catch (error) {
         console.error('Error fetching reviews:', error);
         if (error.response?.status === 401) {

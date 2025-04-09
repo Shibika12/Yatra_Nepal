@@ -1,68 +1,142 @@
 .admin-sidebar {
   width: 250px;
   height: 100vh;
-  background: #2c3e50;
+  background-color: #2c3e50;
   color: white;
+  padding: 20px 0;
   position: fixed;
   left: 0;
   top: 0;
-  padding: 20px 0;
+  overflow-y: auto;
 
   .sidebar-header {
     padding: 0 20px;
     margin-bottom: 30px;
 
     h3 {
-      color: white;
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 24px;
+      color: white;
     }
   }
 
-  .notification-badge {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-    background-color: #e74c3c;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 12px;
-    min-width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
   .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-
     .nav-item {
       display: flex;
       align-items: center;
-      padding: 15px 20px;
+      padding: 12px 20px;
       color: #ecf0f1;
       text-decoration: none;
-      transition: all 0.3s ease;
-      gap: 10px;
+      transition: background-color 0.3s;
       position: relative;
 
-      svg {
-        font-size: 1.2rem;
-      }
-
       &:hover {
-        background: #34495e;
+        background-color: #34495e;
       }
 
       &.active {
-        background: #3498db;
-        border-left: 4px solid #2ecc71;
+        background-color: #3498db;
+      }
+
+      svg {
+        margin-right: 10px;
+        font-size: 18px;
+      }
+
+      span {
+        font-size: 16px;
+      }
+
+      .notification-badge {
+        position: absolute;
+        top: 8px;
+        right: 20px;
+        background-color: #e74c3c;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+        min-width: 18px;
+        text-align: center;
+      }
+    }
+
+    .logout-btn {
+      margin-top: auto;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      color: #ecf0f1;
+      font-size: 16px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+
+      &:hover {
+        background-color: #c0392b;
+      }
+
+      svg {
+        margin-right: 10px;
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+// Modal styles
+.modal-content {
+  background-color: #2c3e50;
+  color: white;
+  border-radius: 8px;
+
+  .modal-header {
+    border-bottom: 1px solid #34495e;
+
+    .modal-title {
+      color: white;
+    }
+
+    .btn-close {
+      color: white;
+    }
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .modal-footer {
+    border-top: 1px solid #34495e;
+    padding: 15px;
+
+    .btn {
+      padding: 8px 20px;
+      border-radius: 4px;
+      font-weight: 500;
+
+      &.btn-secondary {
+        background-color: #7f8c8d;
+        border-color: #7f8c8d;
+        color: white;
+
+        &:hover {
+          background-color: #95a5a6;
+          border-color: #95a5a6;
+        }
+      }
+
+      &.btn-primary {
+        background-color: #e74c3c;
+        border-color: #e74c3c;
+        color: white;
+
+        &:hover {
+          background-color: #c0392b;
+          border-color: #c0392b;
+        }
       }
     }
   }

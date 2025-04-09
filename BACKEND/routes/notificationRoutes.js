@@ -12,51 +12,61 @@ router.use((req, res, next) => {
 // Get all notifications for the authenticated user
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    // Check for both userId and user_id
-    const userId = req.user.userId || req.user.user_id;
-    console.log('Fetching notifications for user:', userId);
-    console.log('User object:', req.user);
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Invalid user token' });
-    }
-
-    const [rows] = await pool.query(
+    const [notifications] = await pool.query(
       'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC',
-      [userId]
+      [req.user.id]
     );
-
-    console.log('Found notifications:', rows);
-    res.json(rows);
+    res.json(notifications);
   } catch (error) {
-    console.error('Error in notifications route:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ message: 'Error fetching notifications' });
   }
 });
 
 // Mark a notification as read
 router.put('/:id/read', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId || req.user.user_id;
-    console.log('Marking notification as read for user:', userId);
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Invalid user token' });
-    }
-
     const [result] = await pool.query(
-      'UPDATE notifications SET is_read = true WHERE id = ? AND user_id = ?',
-      [req.params.id, userId]
+      'UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
     );
     
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Notification not found' });
+      return res.status(404).json({ message: 'Notification not found' });
     }
     
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ message: 'Error marking notification as read' });
+  }
+});
+
+// Mark all notifications as read
+router.put('/read-all', authenticateToken, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE notifications SET is_read = TRUE WHERE user_id = ?',
+      [req.user.id]
+    );
+    res.json({ message: 'All notifications marked as read' });
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    res.status(500).json({ message: 'Error marking all notifications as read' });
+  }
+});
+
+// Get unread notifications count
+router.get('/unread-count', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE',
+      [req.user.id]
+    );
+    res.json({ count: result[0].count });
+  } catch (error) {
+    console.error('Error fetching unread notifications count:', error);
+    res.status(500).json({ message: 'Error fetching unread notifications count' });
   }
 });
 
