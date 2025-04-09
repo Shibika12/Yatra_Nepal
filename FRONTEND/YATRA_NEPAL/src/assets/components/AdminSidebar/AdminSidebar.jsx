@@ -1,14 +1,133 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './AdminSidebar.scss';
 import { FaUsers, FaBlog, FaStar, FaUserCheck, FaSignOutAlt, FaTachometerAlt, FaCog } from 'react-icons/fa';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
+import io from 'socket.io-client';
+import axios from 'axios';
 
 const AdminSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [unreadBlogs, setUnreadBlogs] = useState(0);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    // Get user data including ID
+    const userData = localStorage.getItem('user');
+    const user = userData ? JSON.parse(userData) : null;
+    console.log('Current user data:', user);
+
+    if (!user || !user.user_id) {
+      console.error('No user data or user ID found');
+      return;
+    }
+
+    // Fetch initial unread blogs count
+    fetchUnreadBlogs();
+
+    // Set up socket connection
+    const token = localStorage.getItem('token');
+    if (token) {
+      console.log('Setting up socket connection for admin...');
+      const newSocket = io('http://localhost:3002', {
+        auth: { token }
+      });
+
+      // Store socket in state
+      setSocket(newSocket);
+
+      // Join admin room
+      newSocket.emit('join_admin', { userId: user.user_id });
+      console.log('Emitted join_admin event with userId:', user.user_id);
+
+      // Listen for new blog notifications
+      newSocket.on('new_blog', (data) => {
+        console.log('Received new_blog event:', data);
+        console.log('Current pathname:', location.pathname);
+        if (location.pathname !== '/admin/blogs') {
+          console.log('Incrementing unread blogs count');
+          setUnreadBlogs(prev => {
+            const newCount = prev + 1;
+            console.log('New unread blogs count:', newCount);
+            return newCount;
+          });
+        }
+      });
+
+      // Listen for new notifications
+      newSocket.on('new_notification', (data) => {
+        console.log('Received new_notification event:', data);
+        if (data.type === 'blog' && location.pathname !== '/admin/blogs') {
+          console.log('Incrementing unread blogs count for notification');
+          setUnreadBlogs(prev => {
+            const newCount = prev + 1;
+            console.log('New unread blogs count:', newCount);
+            return newCount;
+          });
+        }
+      });
+
+      // Socket connection events
+      newSocket.on('connect', () => {
+        console.log('Socket connected successfully');
+        // Fetch notifications again after successful connection
+        fetchUnreadBlogs();
+      });
+
+      newSocket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+      });
+
+      // Clean up socket connection
+      return () => {
+        console.log('Cleaning up socket connection');
+        newSocket.disconnect();
+      };
+    }
+  }, [location.pathname]);
+
+  const fetchUnreadBlogs = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
+      if (!token || !user || !user.user_id) {
+        console.log('No token or user data found, skipping unread blogs fetch');
+        return;
+      }
+
+      console.log('Fetching unread blog notifications for user:', user.user_id);
+      const response = await axios.get('http://localhost:3002/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Raw notifications response:', response.data);
+      
+      // Count unread blog notifications
+      const unreadCount = response.data.filter(notif => {
+        console.log('Checking notification:', notif);
+        const isUnreadBlog = notif.type === 'blog' && !notif.is_read;
+        console.log('Is unread blog:', isUnreadBlog);
+        return isUnreadBlog;
+      }).length;
+
+      console.log('Final unread blog notifications count:', unreadCount);
+      setUnreadBlogs(unreadCount);
+    } catch (error) {
+      console.error('Error fetching unread blogs:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Error status:', error.response.status);
+      }
+    }
+  };
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -51,6 +170,9 @@ const AdminSidebar = () => {
         <Link to="/admin/blogs" className={`nav-item ${isActive('/admin/blogs')}`}>
           <FaBlog />
           <span>Blogs</span>
+          {unreadBlogs > 0 && (
+            <span className="notification-badge">{unreadBlogs}</span>
+          )}
         </Link>
         <Link to="/admin/reviews" className={`nav-item ${isActive('/admin/reviews')}`}>
           <FaStar />

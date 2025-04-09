@@ -94,6 +94,47 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
             );
         }
 
+        // Get user name for notification
+        const [userResult] = await pool.query(
+            'SELECT name FROM Users WHERE user_id = ?',
+            [user_id]
+        );
+        const userName = userResult[0]?.name || 'Unknown User';
+
+        // Create notification for admin
+        const [notificationResult] = await pool.query(
+            'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
+            [29, 'blog', `New blog post from ${userName}`, blog_id] // Admin user_id is 29
+        );
+
+        console.log('Created notification for admin:', notificationResult.insertId);
+
+        // Emit socket events for real-time notification
+        if (req.app.get('io')) {
+            const io = req.app.get('io');
+            
+            console.log('Emitting new_blog event to admin room');
+            // Emit to admin's room
+            io.to('admin').emit('new_blog', {
+                blog_id: blog_id,
+                author_name: userName,
+                content: content.substring(0, 100) + '...' // First 100 characters
+            });
+
+            console.log('Emitting new_notification event to admin room');
+            // Emit notification
+            io.to('admin').emit('new_notification', {
+                id: notificationResult.insertId,
+                type: 'blog',
+                content: `New blog post from ${userName}`,
+                reference_id: blog_id,
+                created_at: new Date(),
+                is_read: false
+            });
+        } else {
+            console.log('Socket.io instance not found in app');
+        }
+
         await pool.query('COMMIT');
 
         res.status(201).json({

@@ -52,7 +52,23 @@ io.on('connection', (socket) => {
   // If user is a guide, join guide-specific room
   if (socket.userRole === 'Guide') {
     socket.join(`guide_${socket.userId}`);
+    console.log(`Guide ${socket.userId} joined guide room`);
   }
+
+  // If user is an admin, join admin room
+  if (socket.userRole === 'Admin') {
+    socket.join('admin');
+    console.log(`Admin ${socket.userId} joined admin room`);
+  }
+
+  socket.on('join_admin', () => {
+    if (socket.userRole === 'Admin') {
+      socket.join('admin');
+      console.log(`Admin ${socket.userId} joined admin room via join_admin event`);
+    } else {
+      console.log(`Non-admin user ${socket.userId} attempted to join admin room`);
+    }
+  });
 
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conversation_${conversationId}`);

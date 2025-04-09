@@ -419,17 +419,7 @@ const GuideDashboard = () => {
                 <FaCalendarAlt className="me-2" />
                 Manage Availability
               </Button>
-              <Button 
-                variant="primary" 
-                onClick={() => setShowChat(true)}
-                className="messages-button"
-              >
-                <FaComments className="me-2" />
-                Messages
-                {messages.some(m => m.unread) && (
-                  <Badge bg="danger" className="ms-2">New</Badge>
-                )}
-              </Button>
+             
             </Col>
           </Row>
           

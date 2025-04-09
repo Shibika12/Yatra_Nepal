@@ -22,8 +22,42 @@ const AdminBlogs = () => {
         }
     };
 
+    const markBlogNotificationsAsRead = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            // Get all unread blog notifications
+            const response = await axios.get('http://localhost:3002/api/notifications', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const unreadBlogNotifications = response.data.filter(
+                notif => notif.type === 'blog' && !notif.is_read
+            );
+
+            // Mark each notification as read
+            for (const notification of unreadBlogNotifications) {
+                await axios.put(
+                    `http://localhost:3002/api/notifications/${notification.id}/read`,
+                    {},
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+            }
+        } catch (error) {
+            console.error('Error marking notifications as read:', error);
+        }
+    };
+
     useEffect(() => {
         fetchBlogs();
+        markBlogNotificationsAsRead();
     }, []);
 
     const handleDelete = async (blogId) => {

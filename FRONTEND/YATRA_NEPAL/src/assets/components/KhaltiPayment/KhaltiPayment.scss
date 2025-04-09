@@ -1,0 +1,22 @@
+.khalti-payment {
+  .khalti-button {
+    background-color: #5C2D91;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: #4A2475;
+    }
+
+    &:disabled {
+      background-color: #9B7BB3;
+      cursor: not-allowed;
+    }
+  }
+} 
