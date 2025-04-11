@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaTrash } from 'react-icons/fa';
 import { format } from 'date-fns';
+import { Modal, Button, Form } from 'react-bootstrap';
 import './AdminBlogs.scss';
 import { toast } from 'react-toastify';
 import AdminSidebar from '../../components/AdminSidebar/AdminSidebar';
@@ -9,10 +10,18 @@ import AdminSidebar from '../../components/AdminSidebar/AdminSidebar';
 const AdminBlogs = () => {
     const [blogs, setBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteMessage, setDeleteMessage] = useState('');
+    const [selectedBlog, setSelectedBlog] = useState(null);
 
     const fetchBlogs = async () => {
         try {
-            const response = await axios.get('http://localhost:3002/api/blogs/all');
+            const token = localStorage.getItem('token');
+            const response = await axios.get('http://localhost:3002/api/blogs/all', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             setBlogs(response.data);
         } catch (error) {
             console.error('Error fetching blogs:', error);
@@ -27,7 +36,6 @@ const AdminBlogs = () => {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            // Get all unread blog notifications
             const response = await axios.get('http://localhost:3002/api/notifications', {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -38,7 +46,6 @@ const AdminBlogs = () => {
                 notif => notif.type === 'blog' && !notif.is_read
             );
 
-            // Mark each notification as read
             for (const notification of unreadBlogNotifications) {
                 await axios.put(
                     `http://localhost:3002/api/notifications/${notification.id}/read`,
@@ -60,16 +67,59 @@ const AdminBlogs = () => {
         markBlogNotificationsAsRead();
     }, []);
 
-    const handleDelete = async (blogId) => {
-        if (window.confirm('Are you sure you want to delete this blog?')) {
-            try {
-                await axios.delete(`http://localhost:3002/api/admin/blogs/${blogId}`);
-                toast.success('Blog deleted successfully');
-                fetchBlogs(); // Refresh the list
-            } catch (error) {
-                console.error('Error deleting blog:', error);
-                toast.error('Failed to delete blog');
+    const handleDelete = (blog) => {
+        setSelectedBlog(blog);
+        setShowDeleteModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowDeleteModal(false);
+        setDeleteMessage('');
+        setSelectedBlog(null);
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedBlog || !deleteMessage.trim()) {
+            toast.error('Please provide a reason for deletion');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                toast.error('Authentication required');
+                return;
             }
+
+            // Delete the blog
+            await axios.delete(`http://localhost:3002/api/admin/blogs/${selectedBlog.blog_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            // Create notification for the blog author
+            await axios.post(
+                'http://localhost:3002/api/notifications',
+                {
+                    user_id: selectedBlog.user_id,
+                    type: 'blog_deletion',
+                    content: `Your blog post has been deleted by admin. Reason: ${deleteMessage}`,
+                    reference_id: selectedBlog.blog_id
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+
+            toast.success('Blog deleted successfully');
+            handleCloseModal();
+            fetchBlogs(); // Refresh the list
+        } catch (error) {
+            console.error('Error deleting blog:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete blog');
         }
     };
 
@@ -133,7 +183,7 @@ const AdminBlogs = () => {
                                         </div>
                                         <button
                                             className="delete-button"
-                                            onClick={() => handleDelete(blog.blog_id)}
+                                            onClick={() => handleDelete(blog)}
                                         >
                                             <FaTrash /> Delete Blog
                                         </button>
@@ -142,6 +192,37 @@ const AdminBlogs = () => {
                             ))}
                         </div>
                     )}
+
+                    <Modal show={showDeleteModal} onHide={handleCloseModal}>
+                        <Modal.Header closeButton>
+                            <Modal.Title>Confirm Blog Deletion</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <Form.Group>
+                                <Form.Label>Please provide a reason for deletion:</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={3}
+                                    value={deleteMessage}
+                                    onChange={(e) => setDeleteMessage(e.target.value)}
+                                    placeholder="Enter reason for deletion..."
+                                    required
+                                />
+                            </Form.Group>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={handleCloseModal}>
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="danger" 
+                                onClick={confirmDelete}
+                                disabled={!deleteMessage.trim()}
+                            >
+                                Delete Blog
+                            </Button>
+                        </Modal.Footer>
+                    </Modal>
                 </div>
             </div>
         </div>
