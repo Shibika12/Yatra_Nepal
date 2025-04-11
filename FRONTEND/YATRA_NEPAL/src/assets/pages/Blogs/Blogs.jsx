@@ -5,6 +5,7 @@ import Footer from "../../components/Footer/Footer";
 import { FiMoreVertical, FiHeart, FiArrowLeft } from 'react-icons/fi';
 import axios from 'axios';
 import "./Blogs.scss";
+import { toast } from 'react-hot-toast';
 
 export const Blogs = () => {
   const navigate = useNavigate();
@@ -50,14 +51,25 @@ export const Blogs = () => {
         return;
       }
 
-      await axios.post(`http://localhost:3002/api/blogs/${blogId}/like`, {}, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await axios.post(
+        `http://localhost:3002/api/blogs/${blogId}/like`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
+
+      if (response.data.notification_sent) {
+        toast.success('Blog liked successfully');
+      }
+      
       fetchBlogs(); // Refresh blogs to update like count
     } catch (error) {
-      console.error('Error liking blog:', error);
+      console.error('Error liking blog:', error.response || error);
+      toast.error(error.response?.data?.message || 'Failed to like blog');
       setError('Failed to like blog');
     }
   };

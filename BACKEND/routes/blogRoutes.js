@@ -216,15 +216,30 @@ router.post('/:blogId/like', authenticateToken, async (req, res) => {
         const { blogId } = req.params;
         const user_id = req.user.user_id;
 
-        // Check if blog exists
-        const [blogExists] = await pool.query(
-            'SELECT blog_id FROM blogs WHERE blog_id = ?',
-            [blogId]
+        // Start transaction
+        await pool.query('START TRANSACTION');
+
+        // Check if blog exists and get author info with proper joins
+        const [blogInfo] = await pool.query(
+            `SELECT 
+                b.blog_id, 
+                b.user_id as author_id, 
+                u1.name as author_name, 
+                u2.name as liker_name 
+            FROM blogs b 
+            INNER JOIN Users u1 ON b.user_id = u1.user_id 
+            INNER JOIN Users u2 ON u2.user_id = ? 
+            WHERE b.blog_id = ?`,
+            [user_id, blogId]
         );
 
-        if (!blogExists.length) {
+        if (!blogInfo.length) {
+            await pool.query('ROLLBACK');
             return res.status(404).json({ message: 'Blog not found' });
         }
+
+        const { author_id, author_name, liker_name } = blogInfo[0];
+        console.log('Blog info:', { author_id, author_name, liker_name, user_id });
 
         // Check if already liked
         const [existingLike] = await pool.query(
@@ -238,19 +253,69 @@ router.post('/:blogId/like', authenticateToken, async (req, res) => {
                 'DELETE FROM blog_likes WHERE blog_id = ? AND user_id = ?',
                 [blogId, user_id]
             );
+            await pool.query('COMMIT');
             res.json({ message: 'Blog unliked successfully' });
         } else {
             // Like
-            await pool.query(
+            const [likeResult] = await pool.query(
                 'INSERT INTO blog_likes (blog_id, user_id) VALUES (?, ?)',
                 [blogId, user_id]
             );
-            res.json({ message: 'Blog liked successfully' });
+
+            // Don't notify if user is liking their own blog
+            if (author_id !== user_id) {
+                try {
+                    console.log('Creating notification for author:', author_id);
+                    // Create notification for blog author
+                    const [notificationResult] = await pool.query(
+                        'INSERT INTO notifications (user_id, type, content, reference_id, is_read, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+                        [author_id, 'blog_like', `${liker_name} liked your blog post`, blogId, false]
+                    );
+
+                    console.log('Notification created:', notificationResult.insertId);
+
+                    // Send real-time notification
+                    const io = req.app.get('io');
+                    if (io) {
+                        // Emit to author's personal room
+                        const authorRoom = author_id.toString();
+                        console.log('Emitting notification to author room:', authorRoom);
+                        
+                        const notification = {
+                            id: notificationResult.insertId,
+                            user_id: author_id,
+                            type: 'blog_like',
+                            content: `${liker_name} liked your blog post`,
+                            reference_id: blogId,
+                            created_at: new Date(),
+                            is_read: false
+                        };
+                        
+                        console.log('Emitting notification:', notification);
+                        io.to(authorRoom).emit('new_notification', notification);
+                    } else {
+                        console.error('Socket.io instance not found in app');
+                    }
+                } catch (notifError) {
+                    console.error('Error creating notification:', notifError);
+                    // Continue with the like even if notification fails
+                }
+            }
+
+            await pool.query('COMMIT');
+            res.json({ 
+                message: 'Blog liked successfully',
+                notification_sent: author_id !== user_id
+            });
         }
 
     } catch (error) {
+        await pool.query('ROLLBACK');
         console.error('Error toggling blog like:', error);
-        res.status(500).json({ message: 'Failed to toggle blog like' });
+        res.status(500).json({ 
+            message: 'Failed to toggle blog like',
+            error: error.message 
+        });
     }
 });
 

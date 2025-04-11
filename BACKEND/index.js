@@ -46,8 +46,10 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.userId, 'Role:', socket.userRole);
   
-  // Join user's room for private messages
-  socket.join(socket.userId.toString());
+  // Join user's room for private messages and notifications
+  const userRoom = socket.userId.toString();
+  socket.join(userRoom);
+  console.log(`User ${socket.userId} joined their personal room:`, userRoom);
   
   // If user is a guide, join guide-specific room
   if (socket.userRole === 'Guide') {
@@ -68,17 +70,10 @@ io.on('connection', (socket) => {
     console.log(`Tourist ${socket.userId} joined tourist room and general tourists room`);
   }
 
-  socket.on('join_admin', () => {
-    if (socket.userRole === 'Admin') {
-      socket.join('admin');
-      console.log(`Admin ${socket.userId} joined admin room via join_admin event`);
-    } else {
-      console.log(`Non-admin user ${socket.userId} attempted to join admin room`);
-    }
-  });
-
+  // Handle join conversation for chat
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conversation_${conversationId}`);
+    console.log(`User ${socket.userId} joined conversation:`, conversationId);
   });
 
   socket.on('send_message', async (data) => {
@@ -123,6 +118,8 @@ io.on('connection', (socket) => {
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.userId);
+    // Leave all rooms
+    socket.leaveAll();
   });
 });
 
