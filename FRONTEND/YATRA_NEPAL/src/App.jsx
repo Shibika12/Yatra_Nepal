@@ -27,6 +27,7 @@ import GuideDashboard from './assets/pages/GuideDashboard/GuideDashboard';
 import GuideReviews from './assets/pages/GuideReviews/GuideReviews';
 import GuideMessages from './assets/pages/GuideMessages/GuideMessages';
 import AllBlogs from './assets/pages/AllBlogs/AllBlogs';
+import AdminPayments from './assets/pages/AdminPages/AdminPayments/AdminPayments';
 
 // Route protection components
 const PublicRoute = ({ children }) => {
@@ -229,6 +230,16 @@ function App() {
         />
 
         <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/admin/payments" element={
+          <AdminRoute>
+            <div style={{ display: 'flex' }}>
+              <AdminSidebar />
+              <div style={{ flexGrow: 1 }}>
+                <AdminPayments />
+              </div>
+            </div>
+          </AdminRoute>
+        } />
         <Route path="/payment-failure" element={<Navigate to="/payment" />} />
       </Routes>
     </BrowserRouter>

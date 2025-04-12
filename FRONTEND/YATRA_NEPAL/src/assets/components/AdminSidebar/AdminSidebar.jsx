@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './AdminSidebar.scss';
-import { FaUsers, FaBlog, FaStar, FaUserCheck, FaSignOutAlt, FaTachometerAlt, FaCog } from 'react-icons/fa';
+import { FaUsers, FaBlog, FaStar, FaUserCheck, FaSignOutAlt, FaTachometerAlt, FaCog, FaMoneyBill } from 'react-icons/fa';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import io from 'socket.io-client';
@@ -14,6 +14,7 @@ const AdminSidebar = () => {
   const [unreadBlogs, setUnreadBlogs] = useState(0);
   const [unreadReviews, setUnreadReviews] = useState(0);
   const [pendingGuides, setPendingGuides] = useState(0);
+  const [unreadPayments, setUnreadPayments] = useState(0);
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ const AdminSidebar = () => {
     fetchUnreadBlogs();
     fetchUnreadReviews();
     fetchPendingGuides();
+    fetchUnreadPayments();
 
     // Set up socket connection
     const token = localStorage.getItem('token');
@@ -89,6 +91,20 @@ const AdminSidebar = () => {
         }
       });
 
+      // Listen for new payment notifications
+      newSocket.on('new_payment', (data) => {
+        console.log('Received new_payment event:', data);
+        console.log('Current pathname:', location.pathname);
+        if (location.pathname !== '/admin/payments') {
+          console.log('Incrementing unread payments count');
+          setUnreadPayments(prev => {
+            const newCount = prev + 1;
+            console.log('New unread payments count:', newCount);
+            return newCount;
+          });
+        }
+      });
+
       // Listen for new notifications
       newSocket.on('new_notification', (data) => {
         console.log('Received new_notification event:', data);
@@ -113,6 +129,13 @@ const AdminSidebar = () => {
             console.log('New pending guides count:', newCount);
             return newCount;
           });
+        } else if (data.type === 'payment' && location.pathname !== '/admin/payments') {
+          console.log('Incrementing unread payments count for notification');
+          setUnreadPayments(prev => {
+            const newCount = prev + 1;
+            console.log('New unread payments count:', newCount);
+            return newCount;
+          });
         }
       });
 
@@ -123,6 +146,7 @@ const AdminSidebar = () => {
         fetchUnreadBlogs();
         fetchUnreadReviews();
         fetchPendingGuides();
+        fetchUnreadPayments();
       });
 
       newSocket.on('connect_error', (error) => {
@@ -247,6 +271,46 @@ const AdminSidebar = () => {
     }
   };
 
+  const fetchUnreadPayments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
+      if (!token || !user || !user.user_id) {
+        console.log('No token or user data found, skipping unread payments fetch');
+        return;
+      }
+
+      console.log('Fetching unread payment notifications for user:', user.user_id);
+      const response = await axios.get('http://localhost:3002/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Raw notifications response:', response.data);
+      
+      // Count unread payment notifications
+      const unreadCount = response.data.filter(notif => {
+        console.log('Checking notification:', notif);
+        const isUnreadPayment = notif.type === 'payment' && !notif.is_read;
+        console.log('Is unread payment:', isUnreadPayment);
+        return isUnreadPayment;
+      }).length;
+
+      console.log('Final unread payment notifications count:', unreadCount);
+      setUnreadPayments(unreadCount);
+    } catch (error) {
+      console.error('Error fetching unread payments:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Error status:', error.response.status);
+      }
+    }
+  };
+
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
   };
@@ -300,6 +364,13 @@ const AdminSidebar = () => {
           <span>Guide Reviews</span>
           {unreadReviews > 0 && (
             <span className="notification-badge">{unreadReviews}</span>
+          )}
+        </Link>
+        <Link to="/admin/payments" className={`nav-item ${isActive('/admin/payments')}`}>
+          <FaMoneyBill />
+          <span>Payments</span>
+          {unreadPayments > 0 && (
+            <span className="notification-badge">{unreadPayments}</span>
           )}
         </Link>
         <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings')}`}>

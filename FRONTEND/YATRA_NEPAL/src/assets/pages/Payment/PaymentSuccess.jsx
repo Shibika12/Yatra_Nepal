@@ -40,7 +40,7 @@ const PaymentSuccess = () => {
         }
 
         let decodedData = null;
-        if (encodedData) {
+        if (source && source.startsWith('esewa') && encodedData) {
           try {
             // Decode the base64 data
             const decodedStr = atob(encodedData);
@@ -54,8 +54,18 @@ const PaymentSuccess = () => {
         // Use decoded data or stored transaction details
         const transaction_uuid = decodedData?.transaction_uuid || transactionDetails?.transaction_uuid;
         const total_amount = decodedData?.total_amount || transactionDetails?.total_amount;
+        const transaction_code = decodedData?.transaction_code;
         const refId = decodedData?.refId;
         
+        console.log('Payment verification details:', {
+          transaction_uuid,
+          total_amount,
+          transaction_code,
+          refId,
+          source,
+          retryCount
+        });
+
         if (!transaction_uuid && retryCount >= MAX_RETRIES) {
           console.error('Max retries reached. Missing transaction details', {
             source,
@@ -78,14 +88,6 @@ const PaymentSuccess = () => {
           return;
         }
 
-        console.log('Payment verification details:', {
-          transaction_uuid,
-          total_amount,
-          refId,
-          source,
-          retryCount
-        });
-
         const token = localStorage.getItem('token');
         if (!token) {
           toast.error('Please login to continue');
@@ -98,10 +100,10 @@ const PaymentSuccess = () => {
           'http://localhost:3002/api/payments/esewa/verify',
           {
             transaction_uuid,
-            transaction_code: refId || 'DIRECT',
-            total_amount,
+            transaction_code: transaction_code || refId || 'DIRECT',
+            total_amount: total_amount.toString(),
             status: 'COMPLETE',
-            refId: refId || transaction_uuid
+            refId: refId || transaction_code || transaction_uuid
           },
           {
             headers: {

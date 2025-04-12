@@ -1,7 +1,7 @@
 import express from 'express';
-import { pool } from '../config/db.js';
+import pool from '../lib/db.js';
 import axios from 'axios';
-import { authenticateToken } from '../middleware/auth.js';
+import authenticateToken from '../middleware/authenticateToken.js';
 import CryptoJS from 'crypto-js';
 import crypto from 'crypto';
 
@@ -125,7 +125,7 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
 
     // Find the payment record
     const [payments] = await connection.query(
-      'SELECT * FROM payments WHERE transaction_id = ?',
+      'SELECT p.*, u.name as user_name FROM payments p JOIN users u ON p.user_id = u.user_id WHERE p.transaction_id = ?',
       [transaction_uuid]
     );
 
@@ -202,6 +202,45 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
         );
       }
 
+      if (newStatus === 'completed') {
+        // Get all admin users
+        const [admins] = await connection.query(
+          'SELECT user_id FROM users WHERE user_type = "Admin"'
+        );
+
+        // Create notifications for all admins
+        for (const admin of admins) {
+          await connection.query(
+            `INSERT INTO notifications (
+              user_id, 
+              type, 
+              content, 
+              reference_id, 
+              created_at,
+              is_read
+            ) VALUES (?, ?, ?, ?, NOW(), 0)`,
+            [
+              admin.user_id,
+              'payment',
+              `New payment of NPR ${total_amount} received from ${payments[0].user_name}`,
+              payment.id
+            ]
+          );
+        }
+
+        // Emit socket event to admin room
+        const io = req.app.get('io');
+        if (io) {
+          io.to('admin').emit('new_payment', {
+            type: 'payment',
+            content: `New payment of NPR ${total_amount} received from ${payments[0].user_name}`,
+            payment_id: payment.id,
+            amount: total_amount,
+            user_name: payments[0].user_name
+          });
+        }
+      }
+
       await connection.commit();
 
       res.json({
@@ -274,6 +313,47 @@ router.get('/history', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching payment history:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch payment history' });
+  }
+});
+
+// Get all payments (admin only)
+router.get('/admin/payments', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.user_type !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin only.'
+      });
+    }
+
+    // Get all payments with user information
+    const [payments] = await pool.query(
+      `SELECT 
+        p.*,
+        u.name as user_name,
+        u.email as user_email
+      FROM payments p
+      JOIN users u ON p.user_id = u.user_id
+      ORDER BY p.created_at DESC`
+    );
+
+    // Mark notifications as read
+    await pool.query(
+      'UPDATE notifications SET is_read = 1 WHERE user_id = ? AND type = "payment"',
+      [req.user.id]
+    );
+
+    res.json({
+      success: true,
+      payments
+    });
+  } catch (error) {
+    console.error('Error fetching admin payments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch payments'
+    });
   }
 });
 

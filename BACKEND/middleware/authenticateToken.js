@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
+import pool from '../lib/db.js';
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -9,22 +10,36 @@ const authenticateToken = (req, res, next) => {
   }
 
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    console.log('Decoded token:', user);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    console.log('Decoded token:', decoded);
     
     // Use user_id if available, otherwise use userId
-    const userId = user.user_id || user.userId;
+    const userId = decoded.user_id || decoded.userId;
     
     if (!userId) {
       console.error('No user ID found in token');
       return res.status(403).json({ message: 'Invalid token: no user ID' });
     }
 
-    req.user = { 
-      userId: userId,
-      user_id: userId, // Include both for compatibility
-      role: user.role,
-      is_admin: user.is_admin
+    // Get user from database to verify role
+    const [users] = await pool.query(
+      'SELECT user_id, user_type, is_admin FROM users WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!users.length) {
+      console.error('User not found in database');
+      return res.status(403).json({ message: 'User not found' });
+    }
+
+    const user = users[0];
+
+    req.user = {
+      id: user.user_id,
+      user_id: user.user_id,
+      userId: user.user_id,
+      user_type: user.user_type,
+      is_admin: user.user_type === 'Admin'
     };
     
     console.log('Set user object:', req.user);
