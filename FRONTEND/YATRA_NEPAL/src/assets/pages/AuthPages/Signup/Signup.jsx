@@ -81,7 +81,7 @@ export const Signup = () => {
       console.log('Sending signup data:', signupData);
 
       const response = await axios.post(
-        "http://localhost:3002/auth/signup",
+        "http://localhost:3002/api/auth/signup",
         signupData,
         {
           headers: {
