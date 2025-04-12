@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Payment from './assets/pages/Payment/Payment';
 import AuthRoute from './utils/AuthRoute';
 import TouristMessages from './assets/pages/TouristMessages/TouristMessages';
+import PaymentSuccess from './assets/pages/Payment/PaymentSuccess';
 
 // Page imports
 import Home from "./assets/pages/Home/Home";
@@ -226,6 +227,9 @@ function App() {
             </AuthRoute>
           } 
         />
+
+        <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/payment-failure" element={<Navigate to="/payment" />} />
       </Routes>
     </BrowserRouter>
   );

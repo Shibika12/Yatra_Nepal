@@ -196,7 +196,7 @@ router.post('/guide-documents', (req, res) => {
 
             // Verify if user exists
             const [userExists] = await pool.query(
-                'SELECT user_id, name FROM Users WHERE user_id = ?',
+                'SELECT user_id FROM Users WHERE user_id = ?',
                 [userId]
             );
 
@@ -213,56 +213,43 @@ router.post('/guide-documents', (req, res) => {
             // Begin transaction
             await pool.query('START TRANSACTION');
 
-            // Insert citizenship document
-            await pool.query(
-                'INSERT INTO GuideDocuments (user_id, document_type, document_path, status, uploaded_at) VALUES (?, ?, ?, ?, NOW())',
-                [userId, 'citizenship', citizenshipPath, 'pending']
-            );
+            try {
+                // Insert citizenship document
+                await pool.query(
+                    `INSERT INTO GuideDocuments 
+                    (user_id, document_type, document_path, status) 
+                    VALUES (?, ?, ?, ?)`,
+                    [userId, 'citizenship', citizenshipPath, 'pending']
+                );
 
-            // Insert guide license
-            await pool.query(
-                'INSERT INTO GuideDocuments (user_id, document_type, document_path, status, uploaded_at) VALUES (?, ?, ?, ?, NOW())',
-                [userId, 'license', licensePath, 'pending']
-            );
+                // Insert license document
+                await pool.query(
+                    `INSERT INTO GuideDocuments 
+                    (user_id, document_type, document_path, status) 
+                    VALUES (?, ?, ?, ?)`,
+                    [userId, 'license', licensePath, 'pending']
+                );
 
-            // Create notification for admin
-            const [notificationResult] = await pool.query(
-                'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
-                [29, 'guide_validation', `New guide validation from ${userExists[0].name}`, userId]
-            );
+                // Commit transaction
+                await pool.query('COMMIT');
 
-            await pool.query('COMMIT');
-
-            // Emit socket events for real-time notification
-            if (req.app.get('io')) {
-                const io = req.app.get('io');
-                
-                console.log('Emitting new_guide_validation event to admin room');
-                // Emit to admin's room
-                io.to('admin').emit('new_guide_validation', {
-                    user_id: userId,
-                    guide_name: userExists[0].name
+                res.status(200).json({
+                    message: 'Documents uploaded successfully',
+                    userId: userId
                 });
 
-                console.log('Emitting new_notification event to admin room');
-                // Emit notification
-                io.to('admin').emit('new_notification', {
-                    id: notificationResult.insertId,
-                    type: 'guide_validation',
-                    content: `New guide validation from ${userExists[0].name}`,
-                    reference_id: userId,
-                    created_at: new Date(),
-                    is_read: false
-                });
-            } else {
-                console.log('Socket.io instance not found in app');
+            } catch (error) {
+                await pool.query('ROLLBACK');
+                throw error;
             }
 
-            res.status(200).json({ message: 'Documents uploaded successfully' });
         } catch (error) {
-            await pool.query('ROLLBACK');
-            console.error('Error uploading documents:', error);
-            res.status(500).json({ message: 'Server error' });
+            console.error('Database error:', error);
+            res.status(500).json({
+                message: 'Error saving document information',
+                error: error.message,
+                userId: req.body.userId
+            });
         }
     });
 });

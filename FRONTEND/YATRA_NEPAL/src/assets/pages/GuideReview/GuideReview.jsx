@@ -70,7 +70,12 @@ const GuideReview = () => {
         axios.defaults.headers.common['Content-Type'] = 'application/json';
 
         console.log('Fetching guides...');
-        const response = await axios.get('http://localhost:3002/api/guides/all-guides');
+        const response = await axios.get('http://localhost:3002/api/guides/all-guides', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         console.log('Guides response:', response.data);
 
         if (!Array.isArray(response.data)) {

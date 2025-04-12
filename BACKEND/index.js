@@ -10,6 +10,7 @@ import blogRoutes from './routes/blogRoutes.js';
 import touristRoutes from './routes/touristRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import pool from './lib/db.js';
 import jwt from 'jsonwebtoken';
 
@@ -135,22 +136,27 @@ app.use(cors({
 // Parse JSON bodies
 app.use(express.json());
 
-// Remove debug middleware
-app.use((req, res, next) => {
-  next();
-});
+// Parse URL-encoded bodies
+app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
 
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 // Register routes
+app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/auth', authRoutes);
 app.use('/api/guides', guideRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/tourists', touristRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Add a test route for notifications
 app.get('/api/notifications/test', (req, res) => {

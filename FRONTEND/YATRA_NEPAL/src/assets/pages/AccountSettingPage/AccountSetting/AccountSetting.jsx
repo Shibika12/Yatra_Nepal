@@ -39,7 +39,12 @@ export const AccountSetting = () => {
       }
 
       console.log('Making request to:', `http://localhost:3002/api/tourists/profile/${user.user_id}`);
-      const response = await axios.get(`http://localhost:3002/api/tourists/profile/${user.user_id}`);
+      const response = await axios.get(`http://localhost:3002/api/tourists/profile/${user.user_id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
       console.log('Response data:', response.data);
       
       if (response.data) {
@@ -84,7 +89,13 @@ export const AccountSetting = () => {
 
       const response = await axios.put(
         `http://localhost:3002/api/tourists/profile/${user.user_id}`,
-        formData
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       
       // Update local storage with new user data

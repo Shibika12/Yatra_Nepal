@@ -57,6 +57,32 @@ const upload = multer({
     }
 });
 
+// Get all blogs
+router.get('/', authenticateToken, async (req, res) => {
+    try {
+        const [blogs] = await pool.query(`
+            SELECT b.*, u.name as author_name, 
+                   GROUP_CONCAT(bi.image_path) as images
+            FROM blogs b
+            LEFT JOIN Users u ON b.user_id = u.user_id
+            LEFT JOIN blog_images bi ON b.blog_id = bi.blog_id
+            GROUP BY b.blog_id
+            ORDER BY b.created_at DESC
+        `);
+
+        // Process the images string into an array
+        const processedBlogs = blogs.map(blog => ({
+            ...blog,
+            images: blog.images ? blog.images.split(',') : []
+        }));
+
+        res.json(processedBlogs);
+    } catch (error) {
+        console.error('Error fetching blogs:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 // Create a new blog post
 router.post('/', authenticateToken, upload.array('images', 5), async (req, res) => {
     try {

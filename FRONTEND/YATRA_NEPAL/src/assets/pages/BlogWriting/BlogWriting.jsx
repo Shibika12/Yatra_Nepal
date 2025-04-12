@@ -35,7 +35,8 @@ export const BlogWriting = () => {
       console.log('Making request to fetch blogs...');
       const response = await axios.get('http://localhost:3002/api/blogs', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       

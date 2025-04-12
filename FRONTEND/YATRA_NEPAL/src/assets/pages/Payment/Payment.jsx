@@ -1,37 +1,166 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Payment.scss';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
 import { toast } from 'react-toastify';
+import { submitEsewaPayment } from '../../../utils/esewaPayment';
 
 // Temporarily use a placeholder image URL until you add a QR code image to your project
 const dummyQRCode = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/QR_code_for_mobile_English_Wikipedia.svg/1200px-QR_code_for_mobile_English_Wikipedia.svg.png";
 
 const Payment = () => {
   const { guideId } = useParams();
+  const navigate = useNavigate();
   const [guideDetails, setGuideDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const formRef = useRef(null);
+  const [paymentDetails, setPaymentDetails] = useState({
+    amount: 15000, // Your base amount
+    taxAmount: 1500, // 10% tax
+    totalAmount: 16500, // Total including tax
+  });
+  const [customAmount, setCustomAmount] = useState('');
+  const [duration, setDuration] = useState(5);
 
   useEffect(() => {
+    console.log('Current guideId:', guideId); // Debug log
+    if (!guideId) {
+      console.log('No guideId found, redirecting...'); // Debug log
+      setLoading(false);
+      toast.error('No guide selected. Please select a guide first.');
+      navigate('/hireguide');
+      return;
+    }
     fetchGuideDetails();
-  }, [guideId]);
+  }, [guideId, navigate]);
+
+  // Update payment details when custom amount or duration changes
+  useEffect(() => {
+    if (customAmount) {
+      const amount = parseFloat(customAmount);
+      if (!isNaN(amount) && amount > 0) {
+        const taxAmount = amount * 0.1; // 10% tax
+        const totalAmount = amount + taxAmount;
+        setPaymentDetails({
+          amount: amount,
+          taxAmount: taxAmount,
+          totalAmount: totalAmount
+        });
+      }
+    }
+  }, [customAmount]);
 
   const fetchGuideDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:3002/api/guides/guide-profile/${guideId}`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to proceed with payment');
+        navigate('/login');
+        return;
+      }
+
+      console.log('Fetching guide details for ID:', guideId);
+      const response = await axios.get(
+        `http://localhost:3002/api/guides/guide-profile/${guideId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log('Guide details response:', response.data);
+      
+      if (!response.data) {
+        console.log('No guide data received');
+        toast.error('Guide not found');
+        navigate('/hireguide');
+        return;
+      }
+      
       setGuideDetails(response.data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching guide details:', error);
-      toast.error('Failed to load guide details');
+      console.error('Error fetching guide details:', error.response || error);
+      toast.error(error.response?.data?.message || 'Failed to load guide details');
+      navigate('/hireguide');
       setLoading(false);
     }
   };
 
-  if (loading) return <div className="loading">Loading payment details...</div>;
-  if (!guideDetails) return <div className="error">Guide not found</div>;
+  const handleEsewaPayment = async () => {
+    try {
+      setProcessingPayment(true);
+
+      // Validate amount
+      if (!customAmount || customAmount <= 0) {
+        toast.error('Please enter a valid amount');
+        setProcessingPayment(false);
+        return;
+      }
+
+      // Calculate tax and total
+      const amount = parseFloat(customAmount);
+      const taxAmount = amount * 0.13; // 13% tax
+      const totalAmount = amount + taxAmount;
+
+      const paymentDetails = {
+        amount: amount.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        duration: duration
+      };
+
+      console.log('Initiating eSewa payment with details:', paymentDetails);
+
+      const response = await submitEsewaPayment(
+        paymentDetails,
+        `Guide Booking for ${duration} days`
+      );
+
+      if (!response) {
+        throw new Error('Failed to initiate payment');
+      }
+
+      // The form submission will redirect to eSewa, no need to handle success here
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error(error.message || 'Failed to process payment');
+      setProcessingPayment(false);
+    }
+  };
+
+  const handleAmountChange = (e) => {
+    setCustomAmount(e.target.value);
+  };
+
+  const handleDurationChange = (e) => {
+    setDuration(parseInt(e.target.value));
+  };
+
+  if (loading) {
+    return (
+      <div className="payment-wrapper">
+        <Navbar />
+        <div className="loading">Loading payment details...</div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!guideDetails) {
+    return (
+      <div className="payment-wrapper">
+        <Navbar />
+        <div className="error">Please select a guide to proceed with payment.</div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="payment-wrapper">
@@ -53,63 +182,65 @@ const Payment = () => {
                 </div>
                 <div className="summary-item">
                   <span>Duration:</span>
-                  <span>5 Days</span>
+                  <div className="duration-selector">
+                    <select 
+                      value={duration} 
+                      onChange={handleDurationChange}
+                      className="duration-select"
+                    >
+                      <option value="1">1 Day</option>
+                      <option value="2">2 Days</option>
+                      <option value="3">3 Days</option>
+                      <option value="4">4 Days</option>
+                      <option value="5">5 Days</option>
+                      <option value="7">7 Days</option>
+                      <option value="10">10 Days</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="summary-item">
+                  <span>Base Amount:</span>
+                  <div className="amount-input">
+                    <input
+                      type="number"
+                      value={customAmount || paymentDetails.amount}
+                      onChange={handleAmountChange}
+                      placeholder="Enter amount"
+                      min="1000"
+                      step="100"
+                      className="amount-field"
+                    />
+                    <span className="currency">NPR</span>
+                  </div>
+                </div>
+                <div className="summary-item">
+                  <span>Tax Amount:</span>
+                  <span>NPR {paymentDetails.taxAmount}</span>
+                </div>
+                <div className="summary-item total">
                   <span>Total Amount:</span>
-                  <span>NPR 15,000</span>
+                  <span>NPR {paymentDetails.totalAmount}</span>
                 </div>
               </div>
             </div>
             <div className="payment-methods">
               <h2>Payment Options</h2>
-              <div className="qr-section">
-                <div className="qr-container">
-                  <img src={dummyQRCode} alt="Payment QR Code" className="qr-code" />
-                  <div className="qr-instructions">
-                    <h3>Scan QR to Pay</h3>
-                    <p>1. Open your mobile banking app</p>
-                    <p>2. Scan this QR code</p>
-                    <p>3. Confirm the amount and pay</p>
-                  </div>
-                </div>
-                <div className="payment-apps">
-                  <p>Supported Payment Apps:</p>
-                  <div className="app-icons">
-                    <span>eSewa</span>
-                    <span>Khalti</span>
-                    <span>IME Pay</span>
-                  </div>
-                </div>
-              </div>
-              <div className="or-divider">
-                <span>OR</span>
-              </div>
-              <div className="card-payment">
-                <h3>Pay with Card</h3>
-                <form>
-                  <div className="form-group">
-                    <label>Card Number</label>
-                    <input type="text" placeholder="1234 5678 9012 3456" />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Expiry Date</label>
-                      <input type="text" placeholder="MM/YY" />
-                    </div>
-                    <div className="form-group">
-                      <label>CVV</label>
-                      <input type="text" placeholder="123" />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>Cardholder Name</label>
-                    <input type="text" placeholder="Full Name" />
-                  </div>
-                  <button type="submit" className="pay-now-btn">
-                    Pay Now
-                  </button>
-                </form>
+              <div className="payment-buttons">
+                <button 
+                  className="esewa-button"
+                  onClick={handleEsewaPayment}
+                  disabled={processingPayment}
+                >
+                  {processingPayment ? 'Processing...' : 'Pay with eSewa'}
+                </button>
+                <form 
+                  ref={formRef} 
+                  style={{ display: 'none' }}
+                  method="POST"
+                  target="_self"
+                  encType="application/x-www-form-urlencoded"
+                  acceptCharset="UTF-8"
+                ></form>
               </div>
             </div>
           </div>

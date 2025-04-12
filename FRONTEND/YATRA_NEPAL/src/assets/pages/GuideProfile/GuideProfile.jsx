@@ -40,16 +40,27 @@ const GuideProfile = () => {
 
   const fetchGuideData = async () => {
     try {
-      const response = await axios.get(`http://localhost:3002/api/guides/guide-profile/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:3002/api/guides/guide-profile/${id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       const guideData = response.data;
       
+      console.log('Fetched guide data:', guideData); // Debug log
+      
       setGuide({
-        id: guideData.user_id,
+        id: guideData.user_id, // Make sure we're using user_id here
         name: guideData.name,
         image: guideData.profile_pic ? `http://localhost:3002/${guideData.profile_pic}` : 'https://via.placeholder.com/150',
         experience: guideData.years_of_experience ? `${guideData.years_of_experience} years` : 'Not specified',
         location: guideData.nationality || 'Nepal',
-        rating: 5, // You can implement rating system later
+        rating: 5,
         type: guideData.guide_type || 'Guide',
         languages: guideData.languages ? guideData.languages.split(',').map(lang => lang.trim()) : ['English'],
         specialization: guideData.specialization || 'Not specified',
@@ -103,6 +114,12 @@ const GuideProfile = () => {
   };
 
   const handleBookNow = () => {
+    if (!guide || !guide.id) {
+      console.error('No guide ID available');
+      toast.error('Unable to proceed with booking. Please try again.');
+      return;
+    }
+    console.log('Navigating to payment with guide ID:', guide.id);
     navigate(`/payment/${guide.id}`);
   };
 
