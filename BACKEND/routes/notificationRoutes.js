@@ -97,4 +97,38 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Notification routes are working' });
 });
 
+// Mark notifications as read by type
+router.put('/mark-read', authenticateToken, async (req, res) => {
+  try {
+    const { type } = req.body;
+    const userId = req.user.id;
+
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Notification type is required'
+      });
+    }
+
+    const [result] = await pool.query(
+      'UPDATE notifications SET is_read = 1 WHERE user_id = ? AND type = ? AND is_read = 0',
+      [userId, type]
+    );
+
+    console.log(`Marked ${result.affectedRows} ${type} notifications as read for user ${userId}`);
+
+    res.json({
+      success: true,
+      message: `Marked ${result.affectedRows} notifications as read`,
+      affectedRows: result.affectedRows
+    });
+  } catch (error) {
+    console.error('Error marking notifications as read:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark notifications as read'
+    });
+  }
+});
+
 export default router; 

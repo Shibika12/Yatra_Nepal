@@ -6,6 +6,7 @@ import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import io from 'socket.io-client';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -93,13 +94,11 @@ const AdminSidebar = () => {
 
       // Listen for new payment notifications
       newSocket.on('new_payment', (data) => {
-        console.log('Received new_payment event:', data);
-        console.log('Current pathname:', location.pathname);
+        console.log('Received new_payment event in admin sidebar:', data);
         if (location.pathname !== '/admin/payments') {
-          console.log('Incrementing unread payments count');
           setUnreadPayments(prev => {
             const newCount = prev + 1;
-            console.log('New unread payments count:', newCount);
+            console.log('Updating unread payments count to:', newCount);
             return newCount;
           });
         }
@@ -153,10 +152,28 @@ const AdminSidebar = () => {
         console.error('Socket connection error:', error);
       });
 
+      // Reset counts when visiting respective pages
+      if (location.pathname === '/admin/payments') {
+        console.log('Resetting unread payments count');
+        setUnreadPayments(0);
+        // Mark payment notifications as read
+        axios.put('http://localhost:3002/api/notifications/mark-read',
+          { type: 'payment' },
+          { 
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        ).catch(error => console.error('Error marking payment notifications as read:', error));
+      }
+
       // Clean up socket connection
       return () => {
         console.log('Cleaning up socket connection');
-        newSocket.disconnect();
+        if (newSocket) {
+          newSocket.disconnect();
+        }
       };
     }
   }, [location.pathname]);
@@ -274,15 +291,12 @@ const AdminSidebar = () => {
   const fetchUnreadPayments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      if (!token || !user || !user.user_id) {
-        console.log('No token or user data found, skipping unread payments fetch');
+      if (!token) {
+        console.log('No token found, skipping unread payments fetch');
         return;
       }
 
-      console.log('Fetching unread payment notifications for user:', user.user_id);
+      console.log('Fetching unread payment notifications');
       const response = await axios.get('http://localhost:3002/api/notifications', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -290,24 +304,15 @@ const AdminSidebar = () => {
         }
       });
 
-      console.log('Raw notifications response:', response.data);
-      
       // Count unread payment notifications
       const unreadCount = response.data.filter(notif => {
-        console.log('Checking notification:', notif);
-        const isUnreadPayment = notif.type === 'payment' && !notif.is_read;
-        console.log('Is unread payment:', isUnreadPayment);
-        return isUnreadPayment;
+        return notif.type === 'payment' && !notif.is_read;
       }).length;
 
-      console.log('Final unread payment notifications count:', unreadCount);
+      console.log('Setting initial unread payments count to:', unreadCount);
       setUnreadPayments(unreadCount);
     } catch (error) {
       console.error('Error fetching unread payments:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-      }
     }
   };
 

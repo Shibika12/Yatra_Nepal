@@ -38,6 +38,16 @@ const setupWebSocket = (server) => {
 
     // Join user-specific room
     socket.join(`user_${socket.userId}`);
+    
+    // Join admin room if user is admin
+    if (socket.userType === 'Admin') {
+      console.log(`Admin user ${socket.userId} joining admin room`);
+      socket.join('admin');
+    }
+    
+    // Join tourist-specific room
+    socket.join(`tourist_${socket.userId}`);
+    console.log(`User ${socket.userId} joined tourist room: tourist_${socket.userId}`);
 
     // Handle new message
     socket.on('send_message', async (data) => {
@@ -148,6 +158,29 @@ const setupWebSocket = (server) => {
       io.to(`user_${receiverId}`).emit('user_stop_typing', {
         conversationId,
         userId: socket.userId
+      });
+    });
+    
+    // Handle fetch notifications event
+    socket.on('fetch_notifications', () => {
+      console.log(`User ${socket.userId} requested to fetch notifications`);
+      // This is just a trigger for the frontend to fetch notifications
+      // The actual fetching happens in the frontend
+    });
+    
+    // Handle payment confirmation
+    socket.on('payment_confirmed', (data) => {
+      console.log('Payment confirmation received:', data);
+      const { userId, notification } = data;
+      
+      // Emit to the specific user
+      io.to(`user_${userId}`).emit('new_notification', notification);
+      io.to(`tourist_${userId}`).emit('new_notification', notification);
+      
+      // Also emit a direct payment confirmation event
+      io.emit('payment_confirmed', {
+        userId,
+        notification
       });
     });
 

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
 import './Payment.scss';
+import { io } from 'socket.io-client';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
@@ -14,6 +15,18 @@ const PaymentSuccess = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    // Initialize socket connection
+    socketRef.current = io('http://localhost:3002');
+    
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -23,7 +36,9 @@ const PaymentSuccess = () => {
         console.log('Search Params:', location.search);
         console.log('Retry count:', retryCount);
 
-        const searchParams = new URLSearchParams(location.search);
+        // Fix the URL parameter issue by properly parsing the search string
+        const searchString = location.search.replace('?source=esewa?', '?source=esewa&');
+        const searchParams = new URLSearchParams(searchString);
         const source = searchParams.get('source');
         const encodedData = searchParams.get('data');
 
@@ -121,6 +136,12 @@ const PaymentSuccess = () => {
           
           setLoading(false);
           toast.success('Payment verified successfully!');
+          
+          // Manually trigger a notification fetch to ensure the tourist sees the notification
+          if (socketRef.current) {
+            socketRef.current.emit('fetch_notifications');
+          }
+          
           // Redirect to home after 2 seconds
           setTimeout(() => navigate('/home'), 2000);
         } else {
@@ -131,10 +152,11 @@ const PaymentSuccess = () => {
         const errorMessage = error.response?.data?.message || error.message || 'Failed to verify payment';
         
         // If we haven't reached max retries and it's a 500 error, retry
-        if (retryCount < MAX_RETRIES && error.response?.status === 500) {
+        if (retryCount < MAX_RETRIES && (error.response?.status === 500 || error.response?.status === 400)) {
           console.log('Retrying verification...', {
             retryCount,
-            maxRetries: MAX_RETRIES
+            maxRetries: MAX_RETRIES,
+            errorStatus: error.response?.status
           });
           setRetryCount(prev => prev + 1);
           setTimeout(() => verifyPayment(), RETRY_DELAY);

@@ -58,8 +58,11 @@ const Navbar = () => {
 
   const initializeSocket = () => {
     const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
     console.log('Token for socket initialization:', token ? 'Present' : 'Missing');
-    if (!token) return;
+    if (!token || !userData) return;
+
+    const user = JSON.parse(userData);
 
     socketRef.current = io('http://localhost:3002', {
       auth: { token }
@@ -67,6 +70,8 @@ const Navbar = () => {
 
     socketRef.current.on('connect', () => {
       console.log('Socket connected successfully');
+      // Join user-specific room
+      socketRef.current.emit('join_room', `tourist_${user.user_id}`);
       // Fetch notifications again after successful connection
       fetchNotifications();
     });
@@ -83,6 +88,21 @@ const Navbar = () => {
 
     socketRef.current.on('new_notification', (notification) => {
       console.log('Received new notification:', notification);
+      
+      // Show toast notification
+      if (notification.type === 'payment') {
+        toast.success(notification.content, {
+          duration: 5000,
+          position: 'top-right',
+          style: {
+            background: '#4CAF50',
+            color: '#fff',
+          },
+        });
+      } else {
+        toast.success(notification.content);
+      }
+      
       setNotifications(prev => {
         // Check if notification already exists
         const exists = prev.some(n => n.id === notification.id);
@@ -92,6 +112,44 @@ const Navbar = () => {
         return [notification, ...prev];
       });
       setUnreadCount(prev => prev + 1);
+    });
+
+    // Handle payment confirmation event
+    socketRef.current.on('payment_confirmed', (data) => {
+      console.log('Payment confirmed event received:', data);
+      
+      // Check if this notification is for the current user
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      if (data.userId === userData.user_id) {
+        const notification = data.notification;
+        
+        // Show toast notification
+        toast.success(notification.content, {
+          duration: 5000,
+          position: 'top-right',
+          style: {
+            background: '#4CAF50',
+            color: '#fff',
+          },
+        });
+        
+        // Add to notifications list
+        setNotifications(prev => {
+          // Check if notification already exists
+          const exists = prev.some(n => n.id === notification.id);
+          if (exists) {
+            return prev;
+          }
+          return [notification, ...prev];
+        });
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
+    // Handle fetch notifications event
+    socketRef.current.on('fetch_notifications', () => {
+      console.log('Fetch notifications event received');
+      fetchNotifications();
     });
 
     return () => {
@@ -182,26 +240,29 @@ const Navbar = () => {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
 
-      // Navigate based on notification type
-      if (notification.type === 'message') {
-        const userRole = localStorage.getItem('userRole');
-        console.log('User role:', userRole);
-        console.log('Notification reference_id:', notification.reference_id);
-        
-        if (userRole === 'Tourist') {
-          console.log('Navigating to tourist messages with conversation:', notification.reference_id);
-          navigate(`/tourist/messages?conversation=${notification.reference_id}`);
-        } else if (userRole === 'Guide') {
-          console.log('Navigating to guide messages with conversation:', notification.reference_id);
-          navigate(`/guide/messages?conversation=${notification.reference_id}`);
-        } else {
-          console.error('Unknown user role:', userRole);
-          // Fallback to the general messages route
-          navigate(`/messages?conversation=${notification.reference_id}`);
+      // Only navigate for non-payment notifications
+      if (notification.type !== 'payment') {
+        // Navigate based on notification type
+        if (notification.type === 'message') {
+          const userRole = localStorage.getItem('userRole');
+          console.log('User role:', userRole);
+          console.log('Notification reference_id:', notification.reference_id);
+          
+          if (userRole === 'Tourist') {
+            console.log('Navigating to tourist messages with conversation:', notification.reference_id);
+            navigate(`/tourist/messages?conversation=${notification.reference_id}`);
+          } else if (userRole === 'Guide') {
+            console.log('Navigating to guide messages with conversation:', notification.reference_id);
+            navigate(`/guide/messages?conversation=${notification.reference_id}`);
+          } else {
+            console.error('Unknown user role:', userRole);
+            // Fallback to the general messages route
+            navigate(`/messages?conversation=${notification.reference_id}`);
+          }
+        } else if (notification.type === 'blog') {
+          // Navigate to the blog page
+          navigate('/blogs');
         }
-      } else if (notification.type === 'blog') {
-        // Navigate to the blog page
-        navigate('/blogs');
       }
       
       setShowNotifications(false);
