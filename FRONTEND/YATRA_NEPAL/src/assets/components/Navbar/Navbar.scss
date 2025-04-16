@@ -147,6 +147,81 @@
   }
 }
 
+// Logout Modal Styles
+.modal {
+  .modal-content {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+
+    .modal-header {
+      border: none;
+      padding: 1rem 1rem 0.5rem;
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .btn-close {
+        background: transparent;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 1.5rem 1rem;
+      text-align: center;
+      font-size: 1.1rem;
+      color: #34495e;
+    }
+
+    .modal-footer {
+      border: none;
+      justify-content: center;
+      padding: 0.5rem 1rem 1rem;
+      gap: 1rem;
+
+      .btn {
+        padding: 0.6rem 2rem;
+        border-radius: 25px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        
+        &.btn-secondary {
+          background-color: #95a5a6;
+          border: none;
+          color: white;
+          
+          &:hover {
+            background-color: #7f8c8d;
+            transform: translateY(-1px);
+          }
+        }
+        
+        &.btn-primary {
+          background-color: #e74c3c;
+          border: none;
+          
+          &:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+          }
+        }
+      }
+    }
+  }
+}
+
 // Responsive styles
 @media (max-width: 768px) {
   .navbar {

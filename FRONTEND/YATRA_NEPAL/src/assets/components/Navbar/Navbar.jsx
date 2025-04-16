@@ -419,19 +419,21 @@ const Navbar = () => {
         show={showLogoutModal} 
         onHide={handleLogoutCancel}
         centered
+        backdrop="static"
+        keyboard={false}
       >
         <Modal.Header closeButton>
-          <Modal.Title>Confirm Logout</Modal.Title>
+          <Modal.Title>Logout</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Are you sure you want to logout?
+          Are you sure you want to logout from Yatra Nepal?
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleLogoutCancel}>
             Cancel
           </Button>
           <Button variant="primary" onClick={handleLogoutConfirm}>
-            Confirm Logout
+            Logout
           </Button>
         </Modal.Footer>
       </Modal>
