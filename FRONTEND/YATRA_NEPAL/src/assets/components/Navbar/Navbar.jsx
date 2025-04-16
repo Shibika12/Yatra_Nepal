@@ -60,80 +60,66 @@ const Navbar = () => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     console.log('Token for socket initialization:', token ? 'Present' : 'Missing');
-    if (!token || !userData) return;
+    if (!token || !userData) {
+      console.log('Missing token or user data, skipping socket initialization');
+      return;
+    }
 
     const user = JSON.parse(userData);
+    console.log('Initializing socket with user:', user);
 
-    socketRef.current = io('http://localhost:3002', {
-      auth: { token }
-    });
-
-    socketRef.current.on('connect', () => {
-      console.log('Socket connected successfully');
-      // Join user-specific room
-      socketRef.current.emit('join_room', `tourist_${user.user_id}`);
-      // Fetch notifications again after successful connection
-      fetchNotifications();
-    });
-
-    socketRef.current.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-    });
-
-    socketRef.current.on('receive_message', (message) => {
-      console.log('Received message:', message);
-      // Fetch latest notifications when a message is received
-      fetchNotifications();
-    });
-
-    socketRef.current.on('new_notification', (notification) => {
-      console.log('Received new notification:', notification);
+    try {
+      // Ensure token is in the correct format (remove 'Bearer ' if present)
+      const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
       
-      // Show toast notification
-      if (notification.type === 'payment') {
-        toast.success(notification.content, {
-          duration: 5000,
-          position: 'top-right',
-          style: {
-            background: '#4CAF50',
-            color: '#fff',
-          },
-        });
-      } else {
-        toast.success(notification.content);
-      }
-      
-      setNotifications(prev => {
-        // Check if notification already exists
-        const exists = prev.some(n => n.id === notification.id);
-        if (exists) {
-          return prev;
+      socketRef.current = io('http://localhost:3002', {
+        auth: { 
+          token: cleanToken,
+          userId: user.user_id || user.userId,
+          userType: user.role || user.user_type || 'Tourist'
         }
-        return [notification, ...prev];
       });
-      setUnreadCount(prev => prev + 1);
-    });
 
-    // Handle payment confirmation event
-    socketRef.current.on('payment_confirmed', (data) => {
-      console.log('Payment confirmed event received:', data);
-      
-      // Check if this notification is for the current user
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      if (data.userId === userData.user_id) {
-        const notification = data.notification;
+      socketRef.current.on('connect', () => {
+        console.log('Socket connected successfully');
+        // Join user-specific room
+        socketRef.current.emit('join_room', `tourist_${user.user_id || user.userId}`);
+        // Fetch notifications again after successful connection
+        fetchNotifications();
+      });
+
+      socketRef.current.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        // Try to reconnect after a delay
+        setTimeout(() => {
+          console.log('Attempting to reconnect socket...');
+          socketRef.current.connect();
+        }, 5000);
+      });
+
+      socketRef.current.on('receive_message', (message) => {
+        console.log('Received message:', message);
+        // Fetch latest notifications when a message is received
+        fetchNotifications();
+      });
+
+      socketRef.current.on('new_notification', (notification) => {
+        console.log('Received new notification:', notification);
         
         // Show toast notification
-        toast.success(notification.content, {
-          duration: 5000,
-          position: 'top-right',
-          style: {
-            background: '#4CAF50',
-            color: '#fff',
-          },
-        });
+        if (notification.type === 'payment') {
+          toast.success(notification.content, {
+            duration: 5000,
+            position: 'top-right',
+            style: {
+              background: '#4CAF50',
+              color: '#fff',
+            },
+          });
+        } else {
+          toast.success(notification.content);
+        }
         
-        // Add to notifications list
         setNotifications(prev => {
           // Check if notification already exists
           const exists = prev.some(n => n.id === notification.id);
@@ -143,20 +129,54 @@ const Navbar = () => {
           return [notification, ...prev];
         });
         setUnreadCount(prev => prev + 1);
-      }
-    });
+      });
 
-    // Handle fetch notifications event
-    socketRef.current.on('fetch_notifications', () => {
-      console.log('Fetch notifications event received');
-      fetchNotifications();
-    });
+      // Handle payment confirmation event
+      socketRef.current.on('payment_confirmed', (data) => {
+        console.log('Payment confirmed event received:', data);
+        
+        // Check if this notification is for the current user
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        if (data.userId === userData.user_id) {
+          const notification = data.notification;
+          
+          // Show toast notification
+          toast.success(notification.content, {
+            duration: 5000,
+            position: 'top-right',
+            style: {
+              background: '#4CAF50',
+              color: '#fff',
+            },
+          });
+          
+          // Add to notifications list
+          setNotifications(prev => {
+            // Check if notification already exists
+            const exists = prev.some(n => n.id === notification.id);
+            if (exists) {
+              return prev;
+            }
+            return [notification, ...prev];
+          });
+          setUnreadCount(prev => prev + 1);
+        }
+      });
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
+      // Handle fetch notifications event
+      socketRef.current.on('fetch_notifications', () => {
+        console.log('Fetch notifications event received');
+        fetchNotifications();
+      });
+
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+        }
+      };
+    } catch (error) {
+      console.error('Error initializing socket:', error);
+    }
   };
 
   const fetchNotifications = async () => {

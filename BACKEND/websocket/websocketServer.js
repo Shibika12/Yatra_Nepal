@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
-const jwt = require('jsonwebtoken');
-const pool = require('../db/db');
+import jwt from 'jsonwebtoken';
+import pool from '../lib/db.js';
 
 const setupWebSocket = (server) => {
   const io = new Server(server, {
@@ -16,17 +16,55 @@ const setupWebSocket = (server) => {
   // Middleware to authenticate socket connections
   io.use((socket, next) => {
     const token = socket.handshake.auth.token;
-    if (!token) {
-      return next(new Error('Authentication error'));
+    const userId = socket.handshake.auth.userId;
+    const userType = socket.handshake.auth.userType;
+
+    console.log('Socket auth attempt:', { 
+      hasToken: !!token, 
+      userId, 
+      userType 
+    });
+
+    if (!token || !userId || !userType) {
+      console.log('Missing auth data:', { 
+        hasToken: !!token, 
+        userId, 
+        userType 
+      });
+      return next(new Error('Authentication error: Missing required data'));
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded.userId;
-      socket.userType = decoded.role;
+      // Use the same secret key as in authenticateToken.js
+      const secret = process.env.JWT_SECRET || 'your-secret-key';
+      console.log('Using JWT secret:', secret ? 'Secret is set' : 'No secret found');
+      
+      const decoded = jwt.verify(token, secret);
+      console.log('Token decoded:', decoded);
+      
+      // Check if the token contains either user_id or userId
+      const tokenUserId = decoded.user_id || decoded.userId;
+      
+      if (!tokenUserId) {
+        console.log('No user ID found in token');
+        return next(new Error('Authentication error: No user ID in token'));
+      }
+      
+      // Verify that the token's userId matches the provided userId
+      if (tokenUserId !== userId) {
+        console.log('Token userId mismatch:', { 
+          tokenUserId, 
+          providedUserId: userId 
+        });
+        return next(new Error('Authentication error: User ID mismatch'));
+      }
+
+      socket.userId = userId;
+      socket.userType = userType;
       next();
     } catch (err) {
-      next(new Error('Authentication error'));
+      console.error('Token verification error:', err);
+      next(new Error('Authentication error: Invalid token'));
     }
   });
 
