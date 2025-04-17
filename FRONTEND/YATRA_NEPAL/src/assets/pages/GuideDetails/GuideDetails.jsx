@@ -4,12 +4,18 @@ import axios from 'axios';
 import AdminSidebar from '../../components/AdminSidebar/AdminSidebar';
 import './GuideDetails.scss';
 import { FaUser, FaEnvelope, FaPhone, FaIdCard, FaFileAlt, FaGlobe, FaCalendarAlt } from 'react-icons/fa';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
 
 const GuideDetails = () => {
   const { guideId } = useParams();
   const navigate = useNavigate();
   const [guide, setGuide] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [actionType, setActionType] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const fetchGuideDetails = async () => {
@@ -45,7 +51,19 @@ const GuideDetails = () => {
     }
   }, [guideId]);
 
-  const handleApproval = async (status) => {
+  const handleModalOpen = (action) => {
+    setActionType(action);
+    setMessage('');
+    setShowModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setActionType('');
+    setMessage('');
+  };
+
+  const handleApproval = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -54,20 +72,24 @@ const GuideDetails = () => {
         return;
       }
 
-      await axios.post(`http://localhost:3002/api/admin/guide-approval`, {
+      const response = await axios.post(`http://localhost:3002/api/admin/guide-approval`, {
         guideId,
-        status
+        status: actionType,
+        message: message
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      alert(`Guide ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+
+      console.log('Guide approval response:', response.data);
+      alert(`Guide ${actionType} successfully and notification email sent`);
+      handleModalClose();
       navigate('/admin/dashboard');
     } catch (error) {
       console.error('Error updating guide status:', error);
-      alert('Error updating guide status');
+      alert('Error updating guide status: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -181,14 +203,50 @@ const GuideDetails = () => {
           )}
 
           <div className="action-buttons">
-            <button className="approve-btn" onClick={() => handleApproval('approved')}>
+            <button className="approve-btn" onClick={() => handleModalOpen('approved')}>
               Approve Guide
             </button>
-            <button className="reject-btn" onClick={() => handleApproval('rejected')}>
+            <button className="reject-btn" onClick={() => handleModalOpen('rejected')}>
               Reject Guide
             </button>
           </div>
         </div>
+
+        {/* Approval/Rejection Modal */}
+        <Modal show={showModal} onHide={handleModalClose}>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {actionType === 'approved' ? 'Approve Guide' : 'Reject Guide'}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <Form.Group>
+                <Form.Label>Message to Guide</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={4}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={actionType === 'approved' 
+                    ? "Add a welcome message or any specific instructions..."
+                    : "Explain the reason for rejection..."}
+                />
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleModalClose}>
+              Cancel
+            </Button>
+            <Button 
+              variant={actionType === 'approved' ? 'success' : 'danger'}
+              onClick={handleApproval}
+            >
+              {actionType === 'approved' ? 'Approve' : 'Reject'}
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     </div>
   );

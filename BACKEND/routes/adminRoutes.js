@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../lib/db.js';
 import fs from 'fs';
 import authenticateToken from '../middleware/authenticateToken.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -130,30 +131,86 @@ router.get('/pending-guides', async (req, res) => {
 
 // Handle guide approval/rejection
 router.post('/guide-approval', async (req, res) => {
-  const { guideId, status } = req.body;
+  const { guideId, status, message } = req.body;
+  
+  console.log('Received guide approval request:', {
+    guideId,
+    status,
+    messageLength: message ? message.length : 0
+  });
   
   try {
     await pool.query('START TRANSACTION');
+
+    // Get guide's email and name
+    const [guideData] = await pool.query(
+      'SELECT name, email FROM Users WHERE user_id = ?',
+      [guideId]
+    );
+
+    if (!guideData.length) {
+      console.error('Guide not found with ID:', guideId);
+      await pool.query('ROLLBACK');
+      return res.status(404).json({ message: 'Guide not found' });
+    }
+
+    const guide = guideData[0];
+    console.log('Found guide data:', {
+      name: guide.name,
+      email: guide.email
+    });
 
     // Update user verification status
     await pool.query(
       'UPDATE Users SET is_verified = ? WHERE user_id = ?',
       [status === 'approved' ? 1 : 2, guideId]
     );
+    console.log('Updated user verification status');
 
     // Update all pending documents for this guide
     await pool.query(
       'UPDATE GuideDocuments SET status = ? WHERE user_id = ? AND status = "pending"',
       [status, guideId]
     );
+    console.log('Updated guide documents status');
+
+    // Send verification email
+    try {
+      console.log('Attempting to send verification email to:', guide.email);
+      await sendVerificationEmail(guide.email, guide.name, status, message);
+      console.log('Verification email sent successfully to:', guide.email);
+    } catch (emailError) {
+      console.error('Detailed email error:', {
+        error: emailError.message,
+        code: emailError.code,
+        command: emailError.command,
+        stack: emailError.stack
+      });
+      // Continue with the transaction even if email fails
+    }
 
     await pool.query('COMMIT');
+    console.log('Database transaction committed successfully');
     
-    res.json({ message: `Guide ${status} successfully` });
+    res.json({ 
+      message: `Guide ${status} successfully and notification email sent`,
+      guide: {
+        name: guide.name,
+        email: guide.email,
+        status: status
+      }
+    });
   } catch (error) {
     await pool.query('ROLLBACK');
-    console.error('Error updating guide status:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error in guide approval process:', {
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message,
+      details: error.stack 
+    });
   }
 });
 

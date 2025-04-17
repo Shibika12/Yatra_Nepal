@@ -5,6 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -376,28 +377,68 @@ router.get('/admin/pending-verifications', async (req, res) => {
     }
 });
 
-// Add route to update verification status
+// Update route to update verification status
 router.put('/admin/verify-guide/:docId', async (req, res) => {
     try {
         const { docId } = req.params;
-        const { status, userId } = req.body;
+        const { status, userId, message } = req.body;
 
-        await pool.query(
-            "UPDATE GuideDocuments SET status = ? WHERE id = ?",
-            [status, docId]
-        );
+        // Start transaction
+        await pool.query('START TRANSACTION');
 
-        if (status === 'approved') {
+        try {
+            // Update document status
             await pool.query(
-                "UPDATE Users SET is_verified = TRUE WHERE id = ?",
+                "UPDATE GuideDocuments SET status = ? WHERE id = ?",
+                [status, docId]
+            );
+
+            // Get guide's email and name
+            const [guideData] = await pool.query(
+                "SELECT name, email FROM Users WHERE user_id = ?",
                 [userId]
             );
+
+            if (!guideData.length) {
+                throw new Error('Guide not found');
+            }
+
+            const guide = guideData[0];
+
+            // Update user verification status if approved
+            if (status === 'approved') {
+                await pool.query(
+                    "UPDATE Users SET is_verified = 1 WHERE user_id = ?",
+                    [userId]
+                );
+            }
+
+            // Send verification email
+            await sendVerificationEmail(guide.email, guide.name, status, message);
+
+            // Commit transaction
+            await pool.query('COMMIT');
+
+            res.status(200).json({ 
+                message: `Guide ${status} and notification email sent`,
+                guide: {
+                    name: guide.name,
+                    email: guide.email,
+                    status: status
+                }
+            });
+
+        } catch (error) {
+            await pool.query('ROLLBACK');
+            throw error;
         }
 
-        res.status(200).json({ message: `Guide ${status}` });
     } catch (error) {
         console.error('Error updating verification status:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 });
 
