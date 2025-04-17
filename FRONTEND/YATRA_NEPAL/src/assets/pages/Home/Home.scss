@@ -327,9 +327,11 @@
   height: 780px;
   border-radius: 15px;
   object-fit: cover;
+  margin-bottom: 20px;
 }
 
 .read-more {
+  margin-top: 20px;
   position: absolute;
   bottom: 20px;
   right: 20px;
@@ -428,8 +430,8 @@
     margin-top: 4rem;
     padding: 1rem 2.5rem;
     font-size: 1.2rem;
-    background: white;
-    color: black;
+    background: rgb(10, 10, 10);
+    color: rgb(252, 251, 251);
     border: none;
     border-radius: 30px;
     cursor: pointer;

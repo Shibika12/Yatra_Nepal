@@ -208,13 +208,7 @@ export const Signup = () => {
               Signup
             </button>
 
-            <div className="divider">Or</div>
-
-            <button type="button" className="google-signup">
-              <i className="bi bi-google"></i>
-              <span>Signup with Google</span>
-            </button>
-
+          
             <p className="login-link">
               Already Registered? <Link to="/login">Log In</Link>
             </p>

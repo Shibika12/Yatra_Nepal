@@ -265,7 +265,7 @@ const GuideProfile = () => {
                           ))}
                         </div>
                       </div>
-                      <p className="review-date">{review.date}</p>
+
                       <p className="review-comment">{review.comment}</p>
                     </div>
                   ))

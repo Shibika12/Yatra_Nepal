@@ -93,17 +93,14 @@ export const Login = () => {
                 </span>
               </div>
 
-              <div className="forgot-password">Forgot Password?</div>
+              
 
               <button type="submit">Login</button>
-            </form>
+              </form>
 
-            <div className="or">Or</div>
+            
 
-            <div className="google-login">
-              <i className="bi bi-google"></i>
-              <span>Login with Google</span>
-            </div>
+            
 
             <div className="signup">
               Not Registered yet? <Link to="/signup">Sign up</Link>

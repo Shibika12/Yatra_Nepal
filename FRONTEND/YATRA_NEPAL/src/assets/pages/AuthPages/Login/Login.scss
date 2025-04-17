@@ -79,15 +79,7 @@
     color: rgba(255, 255, 255, 0.7);
   }
   
-  .forgot-password {
-    text-align: right;
-    font-size: 15px;
-    margin-bottom: 20px;
-    color: #fff;
-    cursor: pointer;
-    font-family: "Inter", sans-serif;
-    font-weight: 300;
-  }
+  
   
   button {
     width: 150px;
@@ -101,39 +93,14 @@
     transition: background 0.3s;
     font-family: "Inter", sans-serif;
     font-weight: 300;
+margin-bottom: 10px;
   }
   
   button:hover {
     background-color: #de2828;
   }
   
-  .or {
-    margin-top: 25px;
-    font-size: 20px;
-  }
-  
-  .google-login {
-    margin: 20px auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 1px solid white;
-    color: #fff;
-    padding: 10px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 18px;
-    font-family: "Inter", sans-serif;
-    font-weight: 300;
-    gap: 20px;
-    width: 300px;
-    max-width: 100%;
-  }
-  
-  .google-login:hover {
-    background-color: #ce4444;
-  }
+ 
   
   .signup {
     font-size: 16px;

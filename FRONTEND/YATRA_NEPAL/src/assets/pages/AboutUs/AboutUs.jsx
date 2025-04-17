@@ -11,40 +11,27 @@ import "./AboutUs.scss";
 
 const teamMembers = [
   {
-    name: "Jimmy Miller",
-    role: "Moutain Expert",
+    name: "Sanjay Karki",
+    role: "IT Engineer",
     img: "./src/assets/images/ankiy.jpg",
   },
   {
-    name: "Sujan Thapa",
-    role: "Cultural GUIDE",
+    name: "Ashraya Gurung",
+    role: "Market Expert",
     img: "./src/assets/images/male.jpg",
   },
   {
     name: "Ankit Basnet",
-    role: "Terai GUIDE",
+    role: "Admin Officer",
     img: "./src/assets/images/sujan.jpg",
   },
+ 
   {
-    name: "New Member",
-    role: "TOUR GUIDE",
-    img: "./src/assets/images/1.jpg",
-  },
-  {
-    name: "New Member",
-    role: "Mountaineer ",
-    img: "./src/assets/images/2.jpeg",
-  },
-  {
-    name: "New Member",
-    role: "TOUR GUIDE",
-    img: "./src/assets/images/3.jpeg",
-  },
-  {
-    name: "New Member",
-    role: "TOUR GUIDE",
+    name: "Arya Shrestha",
+    role: "Opearation Manager",
     img: "./src/assets/images/4.avif",
   },
+  
 ];
 const galleryImages = [
   "./src/assets/images/chum.jpg",
