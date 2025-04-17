@@ -66,6 +66,10 @@ export const Signup = () => {
     }
 
     try {
+      // Log the current state before creating signupData
+      console.log('Current form values:', values);
+      console.log('Active tab:', activeTab);
+
       const signupData = {
         name: values.name,
         email: values.email,
@@ -82,12 +86,7 @@ export const Signup = () => {
 
       const response = await axios.post(
         "http://localhost:3002/api/auth/signup",
-        signupData,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
+        signupData
       );
       
       console.log('Server response:', response.data);
@@ -116,16 +115,14 @@ export const Signup = () => {
         fullError: error
       });
       
-      if (error.response?.status === 409 || 
-          error.response?.data?.includes('already exists') || 
-          error.message?.toLowerCase().includes('duplicate')) {
+      if (error.response?.status === 409) {
         alert("This email is already registered. Please use a different email or login.");
       } else if (error.response?.status === 400) {
         alert(error.response.data?.message || "Please check your input data.");
       } else if (error.response?.status === 500) {
         alert("Server error. Please try again later.");
       } else {
-        alert(error.response?.data?.message || "Registration failed. Please try again.");
+        alert("Registration failed. Please try again.");
       }
     }
   };
@@ -192,7 +189,13 @@ export const Signup = () => {
                     <Select
                       options={countries}
                       placeholder="Select Nationality"
-                      onChange={(option) => setValues((prev) => ({ ...prev, nationality: option.value }))}
+                      onChange={(option) => {
+                        console.log('Selected nationality:', option);
+                        setValues((prev) => ({
+                          ...prev,
+                          nationality: option.label
+                        }));
+                      }}
                       className="nationality-select"
                       classNamePrefix="select"
                     />

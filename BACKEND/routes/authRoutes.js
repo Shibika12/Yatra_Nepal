@@ -44,6 +44,8 @@ const upload = multer({
 
 router.post('/signup', async (req, res) => {
     try {
+        console.log('Received signup data:', req.body);
+
         const { 
             name, 
             email, 
@@ -54,46 +56,121 @@ router.post('/signup', async (req, res) => {
             guide_type
         } = req.body;
 
+        // Validate required fields
+        if (!name || !email || !password || !phone_number || !user_type) {
+            return res.status(400).json({ 
+                message: 'Missing required fields',
+                received: { name, email, phone_number, user_type }
+            });
+        }
+
+        // Validate guide_type for guides
+        if (user_type === 'Guide' && !guide_type) {
+            return res.status(400).json({ 
+                message: 'Guide type is required for guide registration' 
+            });
+        }
+
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // Set is_verified based on user type
         const is_verified = user_type === 'Tourist' ? 1 : 0;
 
-        // Insert user and get the inserted ID
-        const [result] = await pool.query(
-            `INSERT INTO Users (
-                name, 
-                email, 
-                password, 
-                phone_number, 
-                nationality, 
-                user_type, 
-                guide_type, 
-                is_admin, 
-                is_verified
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                name,
-                email,
-                hashedPassword,
-                phone_number,
-                nationality,
-                user_type,
-                guide_type,
-                0, // is_admin
-                is_verified // automatically set based on user type
-            ]
-        );
+        // Start transaction
+        await pool.query('START TRANSACTION');
 
-        res.status(200).json({ 
-            message: "User registered successfully",
-            userId: result.insertId 
-        });
+        try {
+            // Check if email already exists
+            const [existingUsers] = await pool.query(
+                'SELECT email FROM Users WHERE email = ?',
+                [email]
+            );
+
+            if (existingUsers.length > 0) {
+                await pool.query('ROLLBACK');
+                return res.status(409).json({ 
+                    message: 'This email is already registered' 
+                });
+            }
+
+            // Insert user and get the inserted ID
+            const [userResult] = await pool.query(
+                `INSERT INTO Users (
+                    name, 
+                    email, 
+                    password, 
+                    phone_number, 
+                    nationality, 
+                    user_type, 
+                    guide_type, 
+                    is_admin, 
+                    is_verified
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    name,
+                    email,
+                    hashedPassword,
+                    phone_number,
+                    nationality || 'Nepali', // Default to 'Nepali' if not provided
+                    user_type,
+                    guide_type || null, // Ensure null for tourists
+                    0, // is_admin
+                    is_verified
+                ]
+            );
+
+            const userId = userResult.insertId;
+
+            // If user is a guide, create entry in guides table
+            if (user_type === 'Guide') {
+                await pool.query(
+                    `INSERT INTO guides (
+                        user_id,
+                        years_of_experience,
+                        languages
+                    ) VALUES (?, ?, ?)`,
+                    [userId, 0, 'English'] // Default values, to be updated later
+                );
+            }
+            // For tourists, we don't need to do anything extra since all info is in Users table
+
+            // Commit transaction
+            await pool.query('COMMIT');
+
+            console.log('Registration successful:', {
+                userId,
+                user_type,
+                guide_type: guide_type || null,
+                nationality: nationality || 'Nepali'
+            });
+
+            res.status(200).json({ 
+                message: "User registered successfully",
+                userId: userId 
+            });
+
+        } catch (error) {
+            // Rollback on error
+            await pool.query('ROLLBACK');
+            console.error('Database error during registration:', error);
+            throw error;
+        }
 
     } catch (error) {
         console.error('Error in signup:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        
+        // Check for duplicate email (in case the earlier check missed it)
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ 
+                message: 'This email is already registered' 
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Server error during registration', 
+            error: error.message 
+        });
     }
 });
 

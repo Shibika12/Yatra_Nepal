@@ -32,18 +32,28 @@ const HireGuide = () => {
       setLoading(true);
       const response = await axios.get('http://localhost:3002/api/guides/all-guides');
       
-      // Transform the data to match our component's needs
-      const transformedGuides = response.data.map(guide => ({
-        id: guide.user_id,
-        name: guide.name,
-        image: guide.profile_pic ? `http://localhost:3002/${guide.profile_pic}` : 'https://via.placeholder.com/150',
-        experience: guide.years_of_experience ? `${guide.years_of_experience} years` : 'Not specified',
-        location: guide.nationality || 'Nepal',
-        languages: guide.languages || 'English',
-        type: guide.guide_type?.toLowerCase() || 'trekking',
-        about: guide.about || '',
-        specialization: guide.specialization || ''
-      }));
+      // Create a Map to store unique guides by user_id
+      const uniqueGuidesMap = new Map();
+      
+      // Transform and filter the data to keep only unique guides
+      response.data.forEach(guide => {
+        if (!uniqueGuidesMap.has(guide.user_id)) {
+          uniqueGuidesMap.set(guide.user_id, {
+            id: guide.user_id,
+            name: guide.name,
+            image: guide.profile_pic ? `http://localhost:3002/${guide.profile_pic}` : 'https://via.placeholder.com/150',
+            experience: guide.years_of_experience ? `${guide.years_of_experience} years` : 'Not specified',
+            location: guide.nationality || 'Nepal',
+            languages: guide.languages || 'English',
+            type: guide.guide_type?.toLowerCase() || 'trekking',
+            about: guide.about || '',
+            specialization: guide.specialization || ''
+          });
+        }
+      });
+
+      // Convert Map values to array
+      const transformedGuides = Array.from(uniqueGuidesMap.values());
 
       setGuides(transformedGuides);
       setLoading(false);

@@ -73,42 +73,11 @@ const SemiPublicRoute = ({ children }) => {
 };
 
 const AdminRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const userRole = (user.role || user.user_type || '').toLowerCase();
-  const [error, setError] = useState('');
+  const isAuthenticated = localStorage.getItem("token");
+  const userRole = localStorage.getItem("userRole");
 
-  useEffect(() => {
-    if (!token) {
-      console.error('No token found');
-      navigate('/login');
-      return;
-    }
-
-    if (userRole !== 'admin') {
-      console.error('Access denied: User is not an admin');
-      setError('Access denied: Only administrators can access this page');
-      return;
-    }
-  }, [token, userRole]);
-
-  if (error) {
-    return (
-      <div style={{ 
-        textAlign: 'center', 
-        padding: '2rem', 
-        margin: '2rem auto',
-        maxWidth: '600px',
-        background: '#fff3f3',
-        border: '1px solid #ffcdd2',
-        borderRadius: '8px',
-        color: '#d32f2f',
-        fontSize: '1.1rem',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-      }}>
-        {error}
-      </div>
-    );
+  if (!isAuthenticated || userRole !== 'admin') {
+    return <Navigate to="/login" />;
   }
 
   return children;

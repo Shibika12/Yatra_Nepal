@@ -286,9 +286,7 @@ const AdminSidebar = () => {
 
   return (
     <div className="admin-sidebar">
-      <div className="admin-header">
-        <h2>Admin Dashboard</h2>
-      </div>
+      
       <div className="sidebar-header">
         <h3>Admin Panel</h3>
       </div>
