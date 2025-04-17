@@ -50,91 +50,25 @@ const AdminSidebar = () => {
       newSocket.emit('join_admin', { userId: user.user_id });
       console.log('Emitted join_admin event with userId:', user.user_id);
 
-      // Listen for new blog notifications
-      newSocket.on('new_blog', (data) => {
-        console.log('Received new_blog event:', data);
-        console.log('Current pathname:', location.pathname);
-        if (location.pathname !== '/admin/blogs') {
-          console.log('Incrementing unread blogs count');
-          setUnreadBlogs(prev => {
-            const newCount = prev + 1;
-            console.log('New unread blogs count:', newCount);
-            return newCount;
-          });
-        }
-      });
-
-      // Listen for new review notifications
-      newSocket.on('new_review', (data) => {
-        console.log('Received new_review event:', data);
-        console.log('Current pathname:', location.pathname);
-        if (location.pathname !== '/admin/reviews') {
-          console.log('Incrementing unread reviews count');
-          setUnreadReviews(prev => {
-            const newCount = prev + 1;
-            console.log('New unread reviews count:', newCount);
-            return newCount;
-          });
-        }
-      });
-
-      // Listen for new guide validation submissions
-      newSocket.on('new_guide_validation', (data) => {
-        console.log('Received new_guide_validation event:', data);
-        console.log('Current pathname:', location.pathname);
-        if (location.pathname !== '/admin/dashboard') {
-          console.log('Incrementing pending guides count');
-          setPendingGuides(prev => {
-            const newCount = prev + 1;
-            console.log('New pending guides count:', newCount);
-            return newCount;
-          });
-        }
-      });
-
-      // Listen for new payment notifications
-      newSocket.on('new_payment', (data) => {
-        console.log('Received new_payment event in admin sidebar:', data);
-        if (location.pathname !== '/admin/payments') {
-          setUnreadPayments(prev => {
-            const newCount = prev + 1;
-            console.log('Updating unread payments count to:', newCount);
-            return newCount;
-          });
-        }
-      });
-
-      // Listen for new notifications
+      // Listen for notifications
       newSocket.on('new_notification', (data) => {
         console.log('Received new_notification event:', data);
+        
+        // Check if we're already showing this notification
+        if (data.reference_id) {
+          const isDuplicate = document.querySelectorAll(`[data-notification-ref="${data.reference_id}"]`).length > 0;
+          if (isDuplicate) {
+            console.log('Duplicate notification detected, skipping:', data);
+            return;
+          }
+        }
+
         if (data.type === 'blog' && location.pathname !== '/admin/blogs') {
-          console.log('Incrementing unread blogs count for notification');
-          setUnreadBlogs(prev => {
-            const newCount = prev + 1;
-            console.log('New unread blogs count:', newCount);
-            return newCount;
-          });
+          setUnreadBlogs(prev => prev + 1);
         } else if (data.type === 'review' && location.pathname !== '/admin/reviews') {
-          console.log('Incrementing unread reviews count for notification');
-          setUnreadReviews(prev => {
-            const newCount = prev + 1;
-            console.log('New unread reviews count:', newCount);
-            return newCount;
-          });
-        } else if (data.type === 'guide_validation' && location.pathname !== '/admin/dashboard') {
-          console.log('Incrementing pending guides count for notification');
-          setPendingGuides(prev => {
-            const newCount = prev + 1;
-            console.log('New pending guides count:', newCount);
-            return newCount;
-          });
+          setUnreadReviews(prev => prev + 1);
         } else if (data.type === 'payment' && location.pathname !== '/admin/payments') {
-          console.log('Incrementing unread payments count for notification');
-          setUnreadPayments(prev => {
-            const newCount = prev + 1;
-            console.log('New unread payments count:', newCount);
-            return newCount;
-          });
+          setUnreadPayments(prev => prev + 1);
         }
       });
 
@@ -157,15 +91,7 @@ const AdminSidebar = () => {
         console.log('Resetting unread payments count');
         setUnreadPayments(0);
         // Mark payment notifications as read
-        axios.put('http://localhost:3002/api/notifications/mark-read',
-          { type: 'payment' },
-          { 
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        ).catch(error => console.error('Error marking payment notifications as read:', error));
+        markPaymentNotificationsAsRead(token);
       }
 
       // Clean up socket connection
@@ -177,6 +103,23 @@ const AdminSidebar = () => {
       };
     }
   }, [location.pathname]);
+
+  const markPaymentNotificationsAsRead = async (token) => {
+    try {
+      await axios.put('http://localhost:3002/api/notifications/mark-read',
+        { type: 'payment' },
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log('Payment notifications marked as read');
+    } catch (error) {
+      console.error('Error marking payment notifications as read:', error);
+    }
+  };
 
   const fetchUnreadBlogs = async () => {
     try {
@@ -336,8 +279,16 @@ const AdminSidebar = () => {
     return location.pathname === path ? 'active' : '';
   };
 
+  const handleNotificationClick = (notification) => {
+    // Implement notification click handling
+    console.log('Notification clicked:', notification);
+  };
+
   return (
     <div className="admin-sidebar">
+      <div className="admin-header">
+        <h2>Admin Dashboard</h2>
+      </div>
       <div className="sidebar-header">
         <h3>Admin Panel</h3>
       </div>
@@ -378,10 +329,7 @@ const AdminSidebar = () => {
             <span className="notification-badge">{unreadPayments}</span>
           )}
         </Link>
-        <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings')}`}>
-          <FaCog />
-          <span>Settings</span>
-        </Link>
+        
         <button onClick={handleLogoutClick} className="nav-item logout-btn">
           <FaSignOutAlt />
           <span>Logout</span>

@@ -164,6 +164,22 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
       });
     }
 
+    // Check if notification already exists for this payment
+    const [existingNotifications] = await connection.query(
+      'SELECT * FROM notifications WHERE reference_id = ? AND type = "payment"',
+      [payment.id]
+    );
+
+    if (existingNotifications.length > 0) {
+      await connection.rollback();
+      console.log('Notifications already exist for this payment:', payment.id);
+      return res.json({
+        success: true,
+        message: 'Payment already processed and notified',
+        payment
+      });
+    }
+
     // Update payment status
     const newStatus = status === 'COMPLETE' ? 'completed' : 'failed';
     
@@ -197,13 +213,22 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
         [payment.user_id, 'payment', `Your payment of NPR ${total_amount} has been confirmed`, payment.id]
       );
 
-      console.log('Notification created:', touristNotificationResult);
+      console.log('Tourist notification created:', touristNotificationResult);
+
+      // Create notification for admin
+      console.log('Creating notification for admin');
+      const [adminNotificationResult] = await connection.query(
+        'INSERT INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), ?)',
+        [29, 'payment', `New payment of NPR ${total_amount} received from ${payment.user_name}`, payment.id, false]
+      );
+
+      console.log('Admin notification created:', adminNotificationResult);
 
       // Get the io instance from the app
       const io = req.app.get('io');
       
       if (io) {
-        // Emit to tourist's personal room
+        // Create tourist notification
         const touristNotification = {
           id: touristNotificationResult.insertId,
           type: 'payment',
@@ -213,11 +238,12 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
           is_read: false
         };
 
-        // Emit admin notification
+        // Create admin notification
         const adminNotification = {
+          id: adminNotificationResult.insertId,
           type: 'payment',
           content: `New payment of NPR ${total_amount} received from ${payment.user_name}`,
-          payment_id: payment.id,
+          reference_id: payment.id,
           amount: total_amount,
           user_name: payment.user_name,
           created_at: new Date(),
@@ -226,23 +252,15 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
 
         console.log('Emitting notification to tourist:', {
           userId: payment.user_id,
-          notification: touristNotification,
-          rooms: [`tourist_${payment.user_id}`, payment.user_id.toString()]
+          notification: touristNotification
         });
 
-        // Emit to both user_id and tourist_userId rooms
-        io.to(payment.user_id.toString()).emit('new_notification', touristNotification);
+        // Emit to tourist's room
         io.to(`tourist_${payment.user_id}`).emit('new_notification', touristNotification);
         
         // Emit to admin room
         console.log('Emitting payment notification to admin room');
-        io.to('admin').emit('new_payment', adminNotification);
-        
-        // Also emit a direct notification to the user's socket
-        io.emit('payment_confirmed', {
-          userId: payment.user_id,
-          notification: touristNotification
-        });
+        io.to('admin').emit('new_notification', adminNotification);
       } else {
         console.error('Socket.io instance not found in app');
       }

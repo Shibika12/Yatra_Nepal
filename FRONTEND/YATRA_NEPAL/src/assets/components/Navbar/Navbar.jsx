@@ -131,38 +131,6 @@ const Navbar = () => {
         setUnreadCount(prev => prev + 1);
       });
 
-      // Handle payment confirmation event
-      socketRef.current.on('payment_confirmed', (data) => {
-        console.log('Payment confirmed event received:', data);
-        
-        // Check if this notification is for the current user
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        if (data.userId === userData.user_id) {
-          const notification = data.notification;
-          
-          // Show toast notification
-          toast.success(notification.content, {
-            duration: 5000,
-            position: 'top-right',
-            style: {
-              background: '#4CAF50',
-              color: '#fff',
-            },
-          });
-          
-          // Add to notifications list
-          setNotifications(prev => {
-            // Check if notification already exists
-            const exists = prev.some(n => n.id === notification.id);
-            if (exists) {
-              return prev;
-            }
-            return [notification, ...prev];
-          });
-          setUnreadCount(prev => prev + 1);
-        }
-      });
-
       // Handle fetch notifications event
       socketRef.current.on('fetch_notifications', () => {
         console.log('Fetch notifications event received');

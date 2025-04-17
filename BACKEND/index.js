@@ -50,18 +50,7 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.userId, 'Role:', socket.userRole);
   
-  // Join user's room for private messages and notifications
-  const userRoom = socket.userId.toString();
-  socket.join(userRoom);
-  console.log(`User ${socket.userId} joined their personal room:`, userRoom);
-  
-  // If user is a guide, join guide-specific room
-  if (socket.userRole === 'Guide') {
-    socket.join(`guide_${socket.userId}`);
-    console.log(`Guide ${socket.userId} joined guide room`);
-  }
-
-  // If user is an admin, join admin room
+  // Join admin room if user is admin
   if (socket.userRole === 'Admin') {
     socket.join('admin');
     console.log(`Admin ${socket.userId} joined admin room`);
@@ -70,8 +59,7 @@ io.on('connection', (socket) => {
   // If user is a tourist, join tourist room
   if (socket.userRole === 'Tourist') {
     socket.join(`tourist_${socket.userId}`);
-    socket.join('tourists'); // Join a general tourists room for broadcast notifications
-    console.log(`Tourist ${socket.userId} joined tourist room and general tourists room`);
+    console.log(`Tourist ${socket.userId} joined tourist room`);
   }
 
   // Handle join conversation for chat
@@ -95,7 +83,7 @@ io.on('connection', (socket) => {
       );
       
       // Emit message to receiver's socket
-      io.to(receiverId.toString()).emit('receive_message', {
+      io.to(`tourist_${receiverId}`).emit('receive_message', {
         conversation_id: conversationId,
         message: message,
         sender_id: senderId,
@@ -104,7 +92,7 @@ io.on('connection', (socket) => {
       });
 
       // Emit notification to receiver's socket
-      io.to(receiverId.toString()).emit('new_notification', {
+      io.to(`tourist_${receiverId}`).emit('new_notification', {
         id: notificationResult.insertId,
         type: 'message',
         content: `New message from ${senderName}`,

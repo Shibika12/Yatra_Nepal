@@ -74,18 +74,17 @@ const setupWebSocket = (server) => {
     // Store user connection
     activeUsers.set(socket.userId, socket.id);
 
-    // Join user-specific room
-    socket.join(`user_${socket.userId}`);
-    
     // Join admin room if user is admin
     if (socket.userType === 'Admin') {
       console.log(`Admin user ${socket.userId} joining admin room`);
       socket.join('admin');
     }
     
-    // Join tourist-specific room
-    socket.join(`tourist_${socket.userId}`);
-    console.log(`User ${socket.userId} joined tourist room: tourist_${socket.userId}`);
+    // Join tourist-specific room if user is tourist
+    if (socket.userType === 'Tourist') {
+      socket.join(`tourist_${socket.userId}`);
+      console.log(`User ${socket.userId} joined tourist room: tourist_${socket.userId}`);
+    }
 
     // Handle new message
     socket.on('send_message', async (data) => {
@@ -120,8 +119,8 @@ const setupWebSocket = (server) => {
         );
 
         // Emit to sender and receiver
-        io.to(`user_${senderId}`).emit('receive_message', newMessage[0]);
-        io.to(`user_${receiverId}`).emit('receive_message', newMessage[0]);
+        io.to(`tourist_${senderId}`).emit('receive_message', newMessage[0]);
+        io.to(`tourist_${receiverId}`).emit('receive_message', newMessage[0]);
 
         // Update conversation last message
         await pool.query(
@@ -172,7 +171,7 @@ const setupWebSocket = (server) => {
             ? conversation[0].guide_id 
             : conversation[0].tourist_id;
 
-          io.to(`user_${senderId}`).emit('messages_read', {
+          io.to(`tourist_${senderId}`).emit('messages_read', {
             conversationId,
             readBy: userId
           });
@@ -185,7 +184,7 @@ const setupWebSocket = (server) => {
     // Handle typing indicators
     socket.on('typing', (data) => {
       const { conversationId, receiverId } = data;
-      io.to(`user_${receiverId}`).emit('user_typing', {
+      io.to(`tourist_${receiverId}`).emit('user_typing', {
         conversationId,
         userId: socket.userId
       });
@@ -193,7 +192,7 @@ const setupWebSocket = (server) => {
 
     socket.on('stop_typing', (data) => {
       const { conversationId, receiverId } = data;
-      io.to(`user_${receiverId}`).emit('user_stop_typing', {
+      io.to(`tourist_${receiverId}`).emit('user_stop_typing', {
         conversationId,
         userId: socket.userId
       });
@@ -212,14 +211,7 @@ const setupWebSocket = (server) => {
       const { userId, notification } = data;
       
       // Emit to the specific user
-      io.to(`user_${userId}`).emit('new_notification', notification);
       io.to(`tourist_${userId}`).emit('new_notification', notification);
-      
-      // Also emit a direct payment confirmation event
-      io.emit('payment_confirmed', {
-        userId,
-        notification
-      });
     });
 
     // Handle disconnection
