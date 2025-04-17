@@ -11,10 +11,20 @@ export const TabNavigation = () => {
     return sessionStorage.getItem('activeTab') || "Blog Writing";
   });
 
+  // Check user role
+  const userRole = (localStorage.getItem("userRole") || '').toLowerCase();
+  const userData = JSON.parse(localStorage.getItem("user") || '{}');
+  const userType = (userData.user_type || userData.role || '').toLowerCase();
+
   // Save active tab to sessionStorage whenever it changes
   useEffect(() => {
     sessionStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
+
+  // Verify if user is a tourist
+  if (userRole !== 'tourist' && userType !== 'tourist') {
+    return <div className="access-denied">Access denied. Only tourists can view this page.</div>;
+  }
 
   const tabs = ["Guide Review", "Blog Writing", "Account Settings"];
 

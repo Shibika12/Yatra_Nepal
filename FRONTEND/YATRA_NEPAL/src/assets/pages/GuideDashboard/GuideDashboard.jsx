@@ -87,8 +87,9 @@ const GuideDashboard = () => {
         return;
       }
 
-      // Check if user is a guide
-      if (!user || user.user_type !== "Guide") {
+      // Check both user_type and role, case-insensitive
+      const userType = (user.user_type || user.role || '').toLowerCase();
+      if (!user || userType !== 'guide') {
         setError('Access denied. Only guides can view this page.');
         setLoading(false);
         return;

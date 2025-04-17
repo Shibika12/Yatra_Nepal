@@ -27,18 +27,24 @@ export const Login = () => {
       });
   
       if (response.data.token) {
+        // Store token
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userRole', response.data.role.toLowerCase());
+        
+        // Ensure consistent case for role/user_type
+        const userRole = (response.data.role || response.data.user_type || '').toLowerCase();
+        localStorage.setItem('userRole', userRole);
+        
+        // Store full user data
         localStorage.setItem('user', JSON.stringify(response.data));
         
         // Redirect based on role
-        const userRole = response.data.role.toLowerCase();
         if (userRole === 'admin') {
           navigate('/admin/dashboard');
         } else if (userRole === 'guide') {
           navigate('/guide/dashboard');
         } else {
-          navigate('/home');
+          // Default to tourist role
+          navigate('/profile');
         }
       }
     } catch (error) {

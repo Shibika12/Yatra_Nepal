@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Payment from './assets/pages/Payment/Payment';
 import AuthRoute from './utils/AuthRoute';
@@ -45,6 +45,21 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
+const TouristRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem("token");
+  const userRole = (localStorage.getItem("userRole") || '').toLowerCase();
+  const userData = JSON.parse(localStorage.getItem("user") || '{}');
+  const userType = (userData.user_type || userData.role || '').toLowerCase();
+
+  // Check if user is authenticated and is a tourist
+  if (!isAuthenticated || (userRole !== 'tourist' && userType !== 'tourist')) {
+    console.log('Tourist access denied:', { isAuthenticated, userRole, userType });
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+};
+
 const SemiPublicRoute = ({ children }) => {
   const userRole = localStorage.getItem("userRole");
   
@@ -58,22 +73,84 @@ const SemiPublicRoute = ({ children }) => {
 };
 
 const AdminRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem("token");
-  const userRole = localStorage.getItem("userRole");
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRole = (user.role || user.user_type || '').toLowerCase();
+  const [error, setError] = useState('');
 
-  if (!isAuthenticated || userRole !== 'admin') {
-    return <Navigate to="/login" />;
+  useEffect(() => {
+    if (!token) {
+      console.error('No token found');
+      navigate('/login');
+      return;
+    }
+
+    if (userRole !== 'admin') {
+      console.error('Access denied: User is not an admin');
+      setError('Access denied: Only administrators can access this page');
+      return;
+    }
+  }, [token, userRole]);
+
+  if (error) {
+    return (
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '2rem', 
+        margin: '2rem auto',
+        maxWidth: '600px',
+        background: '#fff3f3',
+        border: '1px solid #ffcdd2',
+        borderRadius: '8px',
+        color: '#d32f2f',
+        fontSize: '1.1rem',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+      }}>
+        {error}
+      </div>
+    );
   }
 
   return children;
 };
 
 const GuideRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem("token");
-  const userRole = localStorage.getItem("userRole")?.toLowerCase();
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRole = (user.role || user.user_type || '').toLowerCase();
+  const [error, setError] = useState('');
 
-  if (!isAuthenticated || userRole !== 'guide') {
-    return <Navigate to="/login" />;
+  useEffect(() => {
+    if (!token) {
+      console.error('No token found');
+      navigate('/login');
+      return;
+    }
+
+    if (userRole !== 'guide') {
+      console.error('Access denied: User is not a guide');
+      setError('Access denied: Only guides can access this page');
+      return;
+    }
+  }, [token, userRole]);
+
+  if (error) {
+    return (
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '2rem', 
+        margin: '2rem auto',
+        maxWidth: '600px',
+        background: '#fff3f3',
+        border: '1px solid #ffcdd2',
+        borderRadius: '8px',
+        color: '#d32f2f',
+        fontSize: '1.1rem',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+      }}>
+        {error}
+      </div>
+    );
   }
 
   return children;
@@ -120,9 +197,9 @@ function App() {
 
         {/* Protected User Routes */}
         <Route path="/profile" element={
-          <AuthRoute>
+          <TouristRoute>
             <Profile />
-          </AuthRoute>
+          </TouristRoute>
         } />
 
         {/* Protected Guide Routes */}

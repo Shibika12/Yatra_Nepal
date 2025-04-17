@@ -32,7 +32,9 @@ export const AccountSetting = () => {
       const user = JSON.parse(userData);
       console.log('Parsed user data:', user);
       
-      if (!user || user.user_type !== "Tourist") {
+      // Check both user_type and role, case-insensitive
+      const userType = (user.user_type || user.role || '').toLowerCase();
+      if (!user || userType !== 'tourist') {
         setError('Access denied. Only tourists can view this page.');
         setLoading(false);
         return;
