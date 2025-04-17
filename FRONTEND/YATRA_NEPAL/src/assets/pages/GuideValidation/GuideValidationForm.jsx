@@ -77,7 +77,7 @@ export const GuideValidationForm = () => {
       });
 
       const response = await axios.post(
-        'http://localhost:3002/auth/guide-documents',
+        'http://localhost:3002/api/auth/guide-documents',
         submitData,
         {
           headers: {

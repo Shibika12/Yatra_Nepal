@@ -1,12 +1,30 @@
 import express from 'express';
 import pool from '../lib/db.js';
 import fs from 'fs';
+import authenticateToken from '../middleware/authenticateToken.js';
 
 const router = express.Router();
 
 // Debug middleware for admin routes
 router.use((req, res, next) => {
   console.log('Admin route accessed:', req.method, req.url);
+  next();
+});
+
+// Admin role check middleware
+router.use(authenticateToken, (req, res, next) => {
+  console.log('Checking admin access:', req.user);
+  
+  if (!req.user || !req.user.is_admin) {
+    console.error('Access denied. User is not admin:', req.user);
+    return res.status(403).json({ 
+      message: 'Access denied. Admin only.',
+      user: req.user ? {
+        user_type: req.user.user_type,
+        is_admin: req.user.is_admin
+      } : null
+    });
+  }
   next();
 });
 
@@ -265,89 +283,105 @@ router.delete('/blogs/:blogId', async (req, res) => {
   }
 });
 
-// Get total tourists count
-router.get('/tourists/count', async (req, res) => {
+// Get tourist count
+router.get('/tourists/count', authenticateToken, async (req, res) => {
+  let connection;
   try {
-    console.log('Fetching tourist count...');
-    const [result] = await pool.query(
-      'SELECT COUNT(*) as count FROM Users WHERE user_type = "Tourist"'
-    );
-    console.log('Tourist count result:', result[0].count);
-    res.json({ count: result[0].count });
+    connection = await pool.getConnection();
+    console.log('Executing tourist count query...');
+    const [rows] = await connection.query(`
+      SELECT COUNT(*) as count 
+      FROM Users 
+      WHERE user_type = 'Tourist'
+    `);
+    console.log('Tourist count result:', rows[0]);
+    res.json({ count: parseInt(rows[0].count) || 0 });
   } catch (error) {
-    console.error('Error fetching tourist count:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error getting tourist count:', error);
+    console.error('SQL Error:', error.sqlMessage);
+    res.status(500).json({ 
+      message: 'Error getting tourist count',
+      error: error.sqlMessage 
+    });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
 // Get verified guides count
-router.get('/guides/verified-count', async (req, res) => {
+router.get('/guides/verified-count', authenticateToken, async (req, res) => {
+  let connection;
   try {
-    console.log('Fetching verified guides count...');
-    const [result] = await pool.query(
-      `SELECT COUNT(DISTINCT user_id) as count 
-       FROM GuideDocuments 
-       WHERE user_id IN (
-         SELECT user_id 
-         FROM GuideDocuments 
-         WHERE status = 'approved' 
-         GROUP BY user_id 
-         HAVING COUNT(*) = 2
-       )`
-    );
-    console.log('Verified guides count:', result[0].count);
-    res.json({ count: result[0].count });
-  } catch (error) {
-    console.error('Error fetching verified guides count:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get guide reviews count
-router.get('/reviews/count', async (req, res) => {
-  try {
-    console.log('Fetching guide reviews count...');
-    const [result] = await pool.query(
-      `SELECT COUNT(*) as count 
-       FROM guide_reviews`
-    );
-    console.log('Guide reviews count:', result[0].count);
-    res.json({ count: result[0].count });
-  } catch (error) {
-    console.error('Error fetching guide reviews count:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get guide distribution by type
-router.get('/guides/distribution', async (req, res) => {
-  try {
-    console.log('Fetching guide distribution...');
-    const [result] = await pool.query(`
-      SELECT 
-        guide_type,
-        COUNT(*) as count
-      FROM Users
+    connection = await pool.getConnection();
+    console.log('Executing verified guides count query...');
+    const [rows] = await connection.query(`
+      SELECT COUNT(*) as count 
+      FROM Users 
       WHERE user_type = 'Guide' 
       AND is_verified = 1
-      GROUP BY guide_type
-      ORDER BY count DESC
     `);
-    
-    // Calculate total for percentage
-    const total = result.reduce((sum, type) => sum + type.count, 0);
-    
-    // Add percentage to each type
-    const distribution = result.map(type => ({
-      ...type,
-      percentage: Math.round((type.count / total) * 100)
-    }));
-
-    console.log('Guide distribution:', distribution);
-    res.json(distribution);
+    console.log('Verified guides count result:', rows[0]);
+    res.json({ count: parseInt(rows[0].count) || 0 });
   } catch (error) {
-    console.error('Error fetching guide distribution:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error getting verified guides count:', error);
+    console.error('SQL Error:', error.sqlMessage);
+    res.status(500).json({ 
+      message: 'Error getting verified guides count',
+      error: error.sqlMessage 
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Get reviews count
+router.get('/reviews/count', authenticateToken, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [rows] = await connection.query('SELECT COUNT(*) as count FROM guide_reviews');
+    res.json({ count: rows[0].count });
+  } catch (error) {
+    console.error('Error getting reviews count:', error);
+    res.status(500).json({ message: 'Error getting reviews count' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get guide distribution
+router.get('/guides/distribution', authenticateToken, async (req, res) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    console.log('Executing guide distribution query...');
+    const [rows] = await connection.query(`
+      SELECT 
+        COALESCE(guide_type, 'Unspecified') as guide_type,
+        COUNT(*) as count,
+        ROUND((COUNT(*) * 100.0 / (
+          SELECT COUNT(*) 
+          FROM Users 
+          WHERE user_type = 'Guide'
+        )), 1) as percentage
+      FROM Users 
+      WHERE user_type = 'Guide'
+      GROUP BY guide_type WITH ROLLUP
+    `);
+    console.log('Guide distribution result:', rows);
+    
+    // Filter out the total row from WITH ROLLUP
+    const filteredRows = rows.filter(row => row.guide_type !== null);
+    
+    res.json(filteredRows);
+  } catch (error) {
+    console.error('Error getting guide distribution:', error);
+    console.error('SQL Error:', error.sqlMessage);
+    res.status(500).json({ 
+      message: 'Error getting guide distribution',
+      error: error.sqlMessage 
+    });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -371,5 +405,75 @@ router.get('/pending-guides-count', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Get transaction data for graph
+router.get('/transactions/graph', authenticateToken, async (req, res) => {
+  let connection;
+  try {
+    console.log('Fetching transaction data for graph...');
+    connection = await pool.getConnection();
+
+    const query = `
+      SELECT 
+        DATE(created_at) as date,
+        SUM(amount) as total_amount,
+        COUNT(*) as transaction_count
+      FROM payments
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC;
+    `;
+
+    const [rows] = await connection.query(query);
+    console.log('Raw transaction data:', rows);
+
+    // Fill in missing dates
+    const filledData = fillMissingDates(rows);
+    console.log('Filled transaction data:', filledData);
+
+    res.json(filledData);
+  } catch (error) {
+    console.error('Error fetching transaction data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch transaction data'
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Helper function to fill missing dates in transaction data
+function fillMissingDates(results) {
+  const filledData = [];
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 30);
+
+  // Create a map of existing dates
+  const dateMap = new Map();
+  results.forEach(item => {
+    const dateStr = item.date.toISOString().split('T')[0];
+    dateMap.set(dateStr, {
+      date: item.date,
+      total_amount: parseFloat(item.total_amount || 0),
+      transaction_count: parseInt(item.transaction_count || 0)
+    });
+  });
+
+  // Fill in all dates
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0];
+    filledData.push(
+      dateMap.get(dateStr) || {
+        date: new Date(d),
+        total_amount: 0,
+        transaction_count: 0
+      }
+    );
+  }
+
+  return filledData;
+}
 
 export default router; 

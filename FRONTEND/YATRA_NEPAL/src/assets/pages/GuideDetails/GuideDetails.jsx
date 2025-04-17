@@ -15,7 +15,19 @@ const GuideDetails = () => {
     const fetchGuideDetails = async () => {
       try {
         console.log('Fetching details for guide ID:', guideId);
-        const response = await axios.get(`http://localhost:3002/api/admin/pending-guides/${guideId}`);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No token found');
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get(`http://localhost:3002/api/admin/pending-guides/${guideId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         console.log('Guide details:', response.data);
         setGuide(response.data);
       } catch (error) {
@@ -35,9 +47,21 @@ const GuideDetails = () => {
 
   const handleApproval = async (status) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        alert('Authentication error. Please log in again.');
+        return;
+      }
+
       await axios.post(`http://localhost:3002/api/admin/guide-approval`, {
         guideId,
         status
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       alert(`Guide ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
       navigate('/admin/dashboard');

@@ -17,7 +17,19 @@ export const AdminDashboard = () => {
 
   const fetchGuides = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/admin/pending-guides');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get('http://localhost:3002/api/admin/pending-guides', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       setGuides(response.data);
       setLoading(false);
     } catch (error) {

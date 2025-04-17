@@ -140,33 +140,42 @@ router.post('/login', async (req, res) => {
         // Clear any existing tokens from localStorage
         res.clearCookie('token');
 
-        // Generate token only for approved guides or non-guide users
+        // Check if user is admin (case-insensitive)
+        const isAdmin = user.user_type.toLowerCase() === 'admin';
+
+        // Generate token with all necessary user information
         const token = jwt.sign(
-            { userId: user.user_id, role: user.user_type },
+            { 
+                userId: user.user_id,
+                user_id: user.user_id, // Include both for compatibility
+                user_type: user.user_type,
+                is_admin: isAdmin
+            },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '24h' }
         );
 
-        // Remove password from user object
+        // Remove sensitive information from user object
         delete user.password;
         delete user.guide_status;
 
-        const isAdmin = user.user_type === 'Admin';
-        res.status(200).json({
-            success: true,
+        // Send response with consistent role casing
+        res.json({
             token,
-            role: isAdmin ? 'admin' : user.user_type,
+            user_id: user.user_id,
+            name: user.name,
+            email: user.email,
+            role: user.user_type,
             is_admin: isAdmin,
-            ...user
+            user: {
+                ...user,
+                is_admin: isAdmin
+            }
         });
 
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ 
-            success: false,
-            message: "Server error", 
-            error: error.message 
-        });
+        console.error('Error in login:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 

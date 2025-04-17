@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { connectToDatabase } from './lib/db.js';
@@ -13,6 +14,8 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import pool from './lib/db.js';
 import jwt from 'jsonwebtoken';
+
+dotenv.config();
 
 const app = express();
 const server = createServer(app);
@@ -196,3 +199,5 @@ connectToDatabase()
     console.error('Failed to connect to database:', error);
     process.exit(1);
   });
+
+export default app;

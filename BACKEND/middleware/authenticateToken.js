@@ -23,7 +23,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Get user from database to verify role
     const [users] = await pool.query(
-      'SELECT user_id, user_type, is_admin FROM users WHERE user_id = ?',
+      'SELECT user_id, user_type, is_admin FROM Users WHERE user_id = ?',
       [userId]
     );
 
@@ -33,20 +33,25 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const user = users[0];
+    const isAdmin = user.user_type.toLowerCase() === 'admin';
 
+    // Set user object with consistent properties
     req.user = {
       id: user.user_id,
       user_id: user.user_id,
       userId: user.user_id,
       user_type: user.user_type,
-      is_admin: user.user_type === 'Admin'
+      is_admin: isAdmin
     };
     
     console.log('Set user object:', req.user);
     next();
   } catch (error) {
     console.error('Token verification failed:', error);
-    return res.status(403).json({ message: 'Invalid or expired token' });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token has expired' });
+    }
+    return res.status(403).json({ message: 'Invalid token' });
   }
 };
 

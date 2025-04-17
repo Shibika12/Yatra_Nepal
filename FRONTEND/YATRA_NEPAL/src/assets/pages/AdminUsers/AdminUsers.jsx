@@ -16,7 +16,19 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/admin/users');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get('http://localhost:3002/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const tourists = response.data.filter(user => user.user_type === 'Tourist');
       setUsers(tourists);
       setLoading(false);
