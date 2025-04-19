@@ -110,9 +110,11 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
     // Start transaction
     await connection.beginTransaction();
 
-    // Get payment details
+    // Get payment details and check if already processed
     const [payments] = await connection.query(
-      'SELECT * FROM payments WHERE transaction_id = ?',
+      'SELECT p.*, n.id as notification_id FROM payments p ' +
+      'LEFT JOIN notifications n ON n.reference_id = p.id AND n.user_id = p.user_id AND n.type = "payment" ' +
+      'WHERE p.transaction_id = ?',
       [transaction_uuid]
     );
 
@@ -123,11 +125,16 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
 
     const payment = payments[0];
 
-    // Check if payment is already processed
-    const [existingNotifications] = await connection.query(
-      'SELECT * FROM notifications WHERE reference_id = ? AND type = "payment"',
-      [payment.id]
-    );
+    // If notification already exists, payment was already processed
+    if (payment.notification_id) {
+      await connection.rollback();
+      console.log('Payment already processed - notification exists');
+      return res.json({
+        success: true,
+        message: 'Payment already processed',
+        payment
+      });
+    }
 
     // Check if booking already exists
     const [existingBookings] = await connection.query(
@@ -135,9 +142,9 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
       [transaction_uuid]
     );
 
-    if (existingNotifications.length > 0 || existingBookings.length > 0) {
+    if (existingBookings.length > 0) {
       await connection.rollback();
-      console.log('Payment already processed or booking exists');
+      console.log('Booking already exists');
       return res.json({
         success: true,
         message: 'Payment already processed',
@@ -156,9 +163,9 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
       );
 
       if (newStatus === 'completed') {
-        // Create booking record
+        // Create booking record with INSERT IGNORE to prevent duplicates
         const [bookingResult] = await connection.query(`
-          INSERT INTO bookings (
+          INSERT IGNORE INTO bookings (
             guide_user_id,
             tourist_user_id,
             booking_date,
@@ -176,46 +183,88 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
           total_amount,
           transaction_uuid,
           'esewa',
-          'completed',  // Set status to completed immediately when payment is completed
-          'completed'   // Set payment_status to completed
+          'completed',
+          'completed'
         ]);
 
-        // Create notifications
+        // Check if booking was actually created
+        if (bookingResult.affectedRows === 0) {
+          console.log('Booking already exists, skipping notification creation');
+          await connection.commit();
+          return res.json({
+            success: true,
+            message: 'Payment already processed',
+            payment
+          });
+        }
+
+        // Create notifications with INSERT IGNORE to prevent duplicates
+        // Tourist notification
         const [touristNotification] = await connection.query(
-          'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
-          [payment.user_id, 'payment', `Thank you! Your payment of NPR ${total_amount} has been completed. Your booking has been confirmed.`, payment.id]
+          'INSERT IGNORE INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
+          [
+            payment.user_id,
+            'payment',
+            `Thank you! Your payment of NPR ${total_amount} has been completed. Your booking has been confirmed.`,
+            payment.id
+          ]
         );
 
+        // Guide notification
         const [guideNotification] = await connection.query(
-          'INSERT INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), 0)',
-          [payment.guide_id, 'booking', `New booking received! Amount: NPR ${total_amount}`, bookingResult.insertId]
+          'INSERT IGNORE INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), 0)',
+          [
+            payment.guide_id,
+            'booking',
+            `New booking received! Amount: NPR ${total_amount}`,
+            bookingResult.insertId
+          ]
         );
 
+        // Admin notification
         const [adminNotification] = await connection.query(
-          'INSERT INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), 0)',
-          [29, 'payment', `New payment of NPR ${total_amount} received. The booking has been confirmed.`, payment.id]
+          'INSERT IGNORE INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), 0)',
+          [
+            29, // Admin user ID
+            'payment',
+            `New payment of NPR ${total_amount} received. The booking has been confirmed.`,
+            payment.id
+          ]
         );
 
-        // Emit socket notifications
+        // Emit socket notifications only if notifications were actually created
         const io = req.app.get('io');
         if (io) {
-          io.to(`guide_${payment.guide_id}`).emit('new_notification', {
-            id: guideNotification.insertId,
-            type: 'booking',
-            content: `New booking received! Amount: NPR ${total_amount}`,
-            reference_id: bookingResult.insertId,
-            created_at: new Date(),
-            is_read: false
-          });
+          // Only emit if the notification was actually inserted
+          if (touristNotification.affectedRows > 0) {
+            io.to(`user_${payment.user_id}`).emit('new_notification', {
+              type: 'payment',
+              content: `Thank you! Your payment of NPR ${total_amount} has been completed. Your booking has been confirmed.`,
+              created_at: new Date()
+            });
+          }
 
-          io.to('admin').emit('new_notification', {
-            id: adminNotification.insertId,
-            type: 'payment',
-            content: `New payment of NPR ${total_amount} received. The booking has been confirmed.`,
-            reference_id: payment.id,
-            created_at: new Date(),
-            is_read: false
-          });
+          if (guideNotification.affectedRows > 0) {
+            io.to(`guide_${payment.guide_id}`).emit('new_notification', {
+              id: guideNotification.insertId,
+              type: 'booking',
+              content: `New booking received! Amount: NPR ${total_amount}`,
+              reference_id: bookingResult.insertId,
+              created_at: new Date(),
+              is_read: false
+            });
+          }
+
+          if (adminNotification.affectedRows > 0) {
+            io.to('admin').emit('new_notification', {
+              id: adminNotification.insertId,
+              type: 'payment',
+              content: `New payment of NPR ${total_amount} received. The booking has been confirmed.`,
+              reference_id: payment.id,
+              created_at: new Date(),
+              is_read: false
+            });
+          }
         }
 
         await connection.commit();
@@ -276,6 +325,65 @@ router.get('/esewa/status', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error checking payment status:', error);
     res.status(500).json({ success: false, message: 'Failed to check payment status' });
+  }
+});
+
+// Check if payment has already been processed
+router.get('/check-status/:transaction_uuid', authenticateToken, async (req, res) => {
+  try {
+    const { transaction_uuid } = req.params;
+    
+    // Check if payment exists and has notifications
+    const [payments] = await pool.query(
+      'SELECT p.*, n.id as notification_id FROM payments p ' +
+      'LEFT JOIN notifications n ON n.reference_id = p.id AND n.user_id = p.user_id AND n.type = "payment" ' +
+      'WHERE p.transaction_id = ?',
+      [transaction_uuid]
+    );
+    
+    if (payments.length === 0) {
+      return res.json({
+        verified: false,
+        message: 'Payment not found'
+      });
+    }
+    
+    const payment = payments[0];
+    
+    // Check if booking exists
+    const [bookings] = await pool.query(
+      'SELECT id FROM bookings WHERE transaction_id = ?',
+      [transaction_uuid]
+    );
+    
+    if (payment.notification_id || bookings.length > 0) {
+      return res.json({
+        verified: true,
+        message: 'Payment already processed',
+        payment: {
+          id: payment.id,
+          status: payment.status,
+          transaction_id: payment.transaction_id
+        }
+      });
+    }
+    
+    return res.json({
+      verified: false,
+      message: 'Payment not yet processed',
+      payment: {
+        id: payment.id,
+        status: payment.status,
+        transaction_id: payment.transaction_id
+      }
+    });
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    res.status(500).json({ 
+      verified: false, 
+      message: 'Failed to check payment status',
+      error: error.message
+    });
   }
 });
 

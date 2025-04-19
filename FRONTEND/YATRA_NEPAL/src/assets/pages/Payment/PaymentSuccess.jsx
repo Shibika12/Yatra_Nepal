@@ -16,6 +16,10 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const socketRef = useRef(null);
+  const [verificationInProgress, setVerificationInProgress] = useState(false);
+  const [verificationCompleted, setVerificationCompleted] = useState(false);
+  const redirectTimeoutRef = useRef(null);
+  const verificationAttemptedRef = useRef(false);
 
   useEffect(() => {
     // Initialize socket connection
@@ -25,11 +29,35 @@ const PaymentSuccess = () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
+      // Clear any pending redirect timeout
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
     };
   }, []);
 
   useEffect(() => {
     const verifyPayment = async () => {
+      // Check if verification is already in progress or completed
+      if (verificationInProgress) {
+        console.log('Verification already in progress, skipping');
+        return;
+      }
+      
+      if (verificationCompleted) {
+        console.log('Verification already completed, skipping');
+        return;
+      }
+      
+      // Check if verification has already been attempted in this session
+      if (verificationAttemptedRef.current) {
+        console.log('Verification already attempted in this session, skipping');
+        return;
+      }
+      
+      setVerificationInProgress(true);
+      verificationAttemptedRef.current = true;
+      
       try {
         // Log the full URL and search params
         console.log('Current URL:', window.location.href);
@@ -89,6 +117,7 @@ const PaymentSuccess = () => {
             retryCount
           });
           toast.error('Payment verification failed');
+          setVerificationInProgress(false);
           setTimeout(() => navigate('/payment'), 2000);
           return;
         }
@@ -99,6 +128,7 @@ const PaymentSuccess = () => {
             maxRetries: MAX_RETRIES
           });
           setRetryCount(prev => prev + 1);
+          setVerificationInProgress(false);
           setTimeout(() => verifyPayment(), RETRY_DELAY);
           return;
         }
@@ -106,8 +136,44 @@ const PaymentSuccess = () => {
         const token = localStorage.getItem('token');
         if (!token) {
           toast.error('Please login to continue');
+          setVerificationInProgress(false);
           setTimeout(() => navigate('/login'), 2000);
           return;
+        }
+
+        // First check if payment has already been processed
+        try {
+          const statusResponse = await axios.get(
+            `http://localhost:3002/api/payments/check-status/${transaction_uuid}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          console.log('Payment status check:', statusResponse.data);
+          
+          if (statusResponse.data.verified) {
+            console.log('Payment already processed, skipping verification');
+            // Clear stored transaction after successful verification
+            localStorage.removeItem('esewa_transaction');
+            
+            setLoading(false);
+            setVerificationCompleted(true);
+            toast.success('Payment already verified!');
+            
+            // Set up redirect timeout
+            redirectTimeoutRef.current = setTimeout(() => {
+              navigate('/home');
+            }, 2000);
+            setVerificationInProgress(false);
+            return;
+          }
+        } catch (statusError) {
+          console.error('Error checking payment status:', statusError);
+          // Continue with verification even if status check fails
         }
 
         // Send verification request
@@ -137,13 +203,18 @@ const PaymentSuccess = () => {
           setLoading(false);
           toast.success('Payment verified successfully!');
           
+          // Mark verification as completed to prevent duplicate verification
+          setVerificationCompleted(true);
+          
           // Manually trigger a notification fetch to ensure the tourist sees the notification
           if (socketRef.current) {
             socketRef.current.emit('fetch_notifications');
           }
           
-          // Redirect to home after 2 seconds
-          setTimeout(() => navigate('/home'), 2000);
+          // Set up redirect timeout
+          redirectTimeoutRef.current = setTimeout(() => {
+            navigate('/home');
+          }, 2000);
         } else {
           throw new Error(response.data.message || 'Payment verification failed');
         }
@@ -159,6 +230,7 @@ const PaymentSuccess = () => {
             errorStatus: error.response?.status
           });
           setRetryCount(prev => prev + 1);
+          setVerificationInProgress(false);
           setTimeout(() => verifyPayment(), RETRY_DELAY);
           return;
         }
@@ -166,12 +238,23 @@ const PaymentSuccess = () => {
         toast.error(errorMessage);
         // On error, redirect to payment page after 2 seconds
         setTimeout(() => navigate('/payment'), 2000);
+      } finally {
+        setVerificationInProgress(false);
       }
     };
 
     // Start verification immediately
     verifyPayment();
   }, [location.search, navigate, retryCount]);
+
+  // Handle manual navigation to home
+  const handleNavigateHome = () => {
+    // Clear any pending redirect timeout
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
+    }
+    navigate('/home');
+  };
 
   if (loading) {
     return (
@@ -214,7 +297,7 @@ const PaymentSuccess = () => {
             Thank you for your payment. Your guide booking has been confirmed.
           </p>
           <button 
-            onClick={() => navigate('/home')} 
+            onClick={handleNavigateHome} 
             style={{
               padding: '12px 24px',
               fontSize: '16px',
