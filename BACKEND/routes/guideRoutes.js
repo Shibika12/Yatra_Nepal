@@ -661,4 +661,133 @@ router.post('/mark-reviews-read', authenticateToken, async (req, res) => {
   }
 });
 
+// Get all bookings for a guide
+router.get('/bookings', authenticateToken, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const userId = req.user.userId || req.user.user_id;
+    console.log('Fetching bookings for guide user ID:', userId);
+    
+    const [bookings] = await connection.query(`
+      SELECT 
+        b.id as booking_id,
+        b.guide_user_id,
+        b.tourist_user_id,
+        b.booking_date,
+        b.amount,
+        b.transaction_id,
+        b.payment_method,
+        b.status,
+        b.payment_status,
+        b.is_read,
+        b.created_at,
+        b.updated_at,
+        u.name as tourist_name
+      FROM bookings b
+      JOIN Users u ON b.tourist_user_id = u.user_id
+      WHERE b.guide_user_id = ?
+      ORDER BY b.created_at DESC
+    `, [userId]);
+
+    console.log('Found bookings:', bookings.length);
+    // Always return an array
+    res.json(Array.isArray(bookings) ? bookings : []);
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      sqlMessage: error.sqlMessage,
+      stack: error.stack
+    });
+    // Return empty array in case of error
+    res.status(500).json([]);
+  } finally {
+    connection.release();
+  }
+});
+
+// Get unread bookings count
+router.get('/unread-bookings-count', authenticateToken, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const userId = req.user.userId || req.user.user_id;
+    console.log('Fetching unread bookings count for user:', userId);
+    
+    const [result] = await connection.query(`
+      SELECT COUNT(*) as count
+      FROM bookings
+      WHERE guide_user_id = ? AND is_read = 0
+    `, [userId]);
+
+    console.log('Unread bookings count:', result[0].count);
+    res.json({ success: true, count: result[0].count });
+  } catch (error) {
+    console.error('Error fetching unread bookings count:', error);
+    res.status(500).json({ success: false, message: 'Error fetching unread bookings count' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Mark bookings as read
+router.post('/mark-bookings-read', authenticateToken, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const userId = req.user.userId || req.user.user_id;
+    console.log('Marking bookings as read for user:', userId);
+    
+    const [result] = await connection.query(`
+      UPDATE bookings
+      SET is_read = 1
+      WHERE guide_user_id = ? AND is_read = 0
+    `, [userId]);
+
+    console.log('Updated bookings:', result.affectedRows);
+    res.json({ success: true, updatedCount: result.affectedRows });
+  } catch (error) {
+    console.error('Error marking bookings as read:', error);
+    res.status(500).json({ success: false, message: 'Error marking bookings as read' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Update booking status
+router.put('/bookings/:bookingId/status', authenticateToken, async (req, res) => {
+  const { bookingId } = req.params;
+  const { status } = req.body;
+  const userId = req.user.userId || req.user.user_id;
+  
+  if (!['pending', 'completed', 'cancelled'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Invalid status value' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    // First check if the booking belongs to this guide
+    const [booking] = await connection.query(`
+      SELECT * FROM bookings WHERE id = ? AND guide_user_id = ?
+    `, [bookingId, userId]);
+
+    if (booking.length === 0) {
+      return res.status(404).json({ success: false, message: 'Booking not found or unauthorized' });
+    }
+
+    // Update the booking status
+    await connection.query(`
+      UPDATE bookings
+      SET status = ?, updated_at = NOW()
+      WHERE id = ? AND guide_user_id = ?
+    `, [status, bookingId, userId]);
+
+    res.json({ success: true, message: 'Booking status updated successfully' });
+  } catch (error) {
+    console.error('Error updating booking status:', error);
+    res.status(500).json({ success: false, message: 'Error updating booking status' });
+  } finally {
+    connection.release();
+  }
+});
+
 export default router; 

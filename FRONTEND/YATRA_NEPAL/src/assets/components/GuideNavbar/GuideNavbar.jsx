@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './GuideNavbar.scss';
-import { FaUser, FaStar, FaComments, FaSignOutAlt } from 'react-icons/fa';
+import { FaUser, FaStar, FaComments, FaSignOutAlt, FaCalendarAlt } from 'react-icons/fa';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import axios from 'axios';
@@ -13,6 +13,7 @@ const GuideNavbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadReviews, setUnreadReviews] = useState(0);
+  const [unreadBookings, setUnreadBookings] = useState(0);
 
   // Helper function to get headers with token
   const getHeaders = () => {
@@ -27,6 +28,7 @@ const GuideNavbar = () => {
     // Fetch initial unread counts
     fetchUnreadCount();
     fetchUnreadReviews();
+    fetchUnreadBookings();
 
     // Set up socket connection for real-time updates
     const token = localStorage.getItem('token');
@@ -45,9 +47,12 @@ const GuideNavbar = () => {
 
       // Listen for new notifications
       socket.on('new_notification', (notification) => {
-        // Only increment unread reviews if not on reviews page and notification is of type 'review'
+        // Handle different types of notifications
         if (location.pathname !== '/guide/reviews' && notification.type === 'review') {
           setUnreadReviews(prev => prev + 1);
+        }
+        if (location.pathname !== '/guide/bookings' && notification.type === 'booking') {
+          setUnreadBookings(prev => prev + 1);
         }
       });
 
@@ -84,6 +89,17 @@ const GuideNavbar = () => {
     }
   };
 
+  const fetchUnreadBookings = async () => {
+    try {
+      const response = await axios.get('http://localhost:3002/api/guides/unread-bookings-count', {
+        headers: getHeaders()
+      });
+      setUnreadBookings(response.data.unreadCount || 0);
+    } catch (error) {
+      console.error('Error fetching unread bookings count:', error);
+    }
+  };
+
   // Reset unread reviews count when visiting reviews page
   useEffect(() => {
     if (location.pathname === '/guide/reviews' && unreadReviews > 0) {
@@ -107,6 +123,23 @@ const GuideNavbar = () => {
       setUnreadCount(0);
     }
   }, [location.pathname, unreadCount]);
+
+  // Reset unread bookings count when visiting bookings page
+  useEffect(() => {
+    if (location.pathname === '/guide/bookings' && unreadBookings > 0) {
+      setUnreadBookings(0);
+      // Mark bookings as read in backend
+      const token = localStorage.getItem('token');
+      axios.post('http://localhost:3002/api/guides/mark-bookings-read', {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).catch(error => {
+        console.error('Error marking bookings as read:', error);
+      });
+    }
+  }, [location.pathname, unreadBookings]);
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -142,6 +175,11 @@ const GuideNavbar = () => {
           <FaComments /> Messages
           {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
         </Link>
+        <Link to="/guide/bookings" className={isActive('/guide/bookings')}>
+          <FaCalendarAlt /> Bookings
+          {unreadBookings > 0 && <span className="notification-badge">{unreadBookings}</span>}
+        </Link>
+        
         <button onClick={handleLogoutClick} className="logout-btn">
           <FaSignOutAlt /> Logout
         </button>

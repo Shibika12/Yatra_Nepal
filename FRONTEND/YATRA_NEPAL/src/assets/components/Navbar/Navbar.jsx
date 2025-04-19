@@ -106,29 +106,30 @@ const Navbar = () => {
       socketRef.current.on('new_notification', (notification) => {
         console.log('Received new notification:', notification);
         
-        // Show toast notification
-        if (notification.type === 'payment') {
-          toast.success(notification.content, {
-            duration: 5000,
-            position: 'top-right',
-            style: {
-              background: '#4CAF50',
-              color: '#fff',
-            },
-          });
-        } else {
+        // Don't show any toast notifications for payment notifications
+        if (notification.type !== 'payment') {
           toast.success(notification.content);
         }
         
+        // For payment notifications, only update the list if it doesn't exist
         setNotifications(prev => {
-          // Check if notification already exists
-          const exists = prev.some(n => n.id === notification.id);
+          // Check if notification already exists by checking both id and reference_id
+          const exists = prev.some(n => 
+            (n.id === notification.id) || 
+            (n.type === notification.type && n.reference_id === notification.reference_id)
+          );
+          
           if (exists) {
             return prev;
           }
+          
+          // Only increment unread count for non-payment notifications
+          if (notification.type !== 'payment') {
+            setUnreadCount(prev => prev + 1);
+          }
+          
           return [notification, ...prev];
         });
-        setUnreadCount(prev => prev + 1);
       });
 
       // Handle fetch notifications event
@@ -156,14 +157,6 @@ const Navbar = () => {
         console.log('No token found, skipping notification fetch');
         return;
       }
-
-      // First try the test endpoint
-      try {
-        const testResponse = await axios.get('http://localhost:3002/api/notifications/test');
-        console.log('Test endpoint response:', testResponse.data);
-      } catch (error) {
-        console.error('Test endpoint failed:', error);
-      }
       
       const response = await axios.get('http://localhost:3002/api/notifications', {
         headers: { 
@@ -173,16 +166,28 @@ const Navbar = () => {
       });
       
       console.log('Raw notifications response:', response.data);
-      setNotifications(response.data);
-      setUnreadCount(response.data.filter(notif => !notif.is_read).length);
+      
+      // Update notifications, ensuring no duplicates
+      setNotifications(prevNotifications => {
+        const newNotifications = response.data.filter(newNotif => 
+          !prevNotifications.some(existingNotif => 
+            existingNotif.id === newNotif.id || 
+            (existingNotif.type === newNotif.type && existingNotif.reference_id === newNotif.reference_id)
+          )
+        );
+        
+        return [...newNotifications, ...prevNotifications];
+      });
+      
+      // Update unread count based on unread notifications
+      const unreadNotifications = response.data.filter(notif => !notif.is_read);
+      setUnreadCount(unreadNotifications.length);
+      
     } catch (error) {
       console.error('Error fetching notifications:', error);
       if (error.response) {
         console.error('Error response:', error.response.data);
         console.error('Error status:', error.response.status);
-        console.error('Error headers:', error.response.headers);
-      } else if (error.request) {
-        console.error('Error request:', error.request);
       }
     }
   };

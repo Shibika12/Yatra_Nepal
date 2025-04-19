@@ -40,6 +40,7 @@ export const submitEsewaPayment = async (paymentDetails, productName) => {
       tax_amount: formatAmount(paymentDetails.taxAmount || 0),
       total_amount: formatAmount(paymentDetails.totalAmount),
       product_name: productName || 'Guide Booking',
+      guide_id: paymentDetails.guide_id,
       success_url: `${baseUrl}/payment-success?source=esewa`,
       failure_url: `${baseUrl}/payment-failure?source=esewa`
     };

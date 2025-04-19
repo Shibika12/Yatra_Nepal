@@ -112,7 +112,8 @@ const Payment = () => {
         amount: amount.toFixed(2),
         taxAmount: taxAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
-        duration: duration
+        duration: duration,
+        guide_id: parseInt(guideId)
       };
 
       console.log('Initiating eSewa payment with details:', paymentDetails);

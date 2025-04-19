@@ -21,7 +21,8 @@ router.post('/esewa/create', authenticateToken, async (req, res) => {
       total_amount,
       product_name,
       success_url,
-      failure_url
+      failure_url,
+      guide_id
     } = req.body;
 
     // Generate unique transaction ID
@@ -31,16 +32,18 @@ router.post('/esewa/create', authenticateToken, async (req, res) => {
     const query = `
       INSERT INTO payments (
         user_id,
+        guide_id,
         transaction_id,
         amount,
         payment_method,
         status,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, NOW())
+      ) VALUES (?, ?, ?, ?, ?, ?, NOW())
     `;
 
     await pool.query(query, [
       req.user.id,
+      guide_id,
       transaction_uuid,
       total_amount,
       'esewa',
@@ -100,82 +103,44 @@ router.post('/esewa/create', authenticateToken, async (req, res) => {
 // Verify eSewa payment
 router.post('/esewa/verify', authenticateToken, async (req, res) => {
   const connection = await pool.getConnection();
-  
+
   try {
-    const { transaction_uuid, transaction_code, status, total_amount, refId } = req.body;
-    
-    console.log('Received verification request:', {
-      transaction_uuid,
-      transaction_code,
-      status,
-      total_amount,
-      refId,
-      userId: req.user.id
-    });
+    const { transaction_uuid, refId, status, total_amount } = req.body;
 
-    // Validate required fields
-    if (!transaction_uuid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing transaction_uuid'
-      });
-    }
-
+    // Start transaction
     await connection.beginTransaction();
 
-    // Find the payment record with user details
+    // Get payment details
     const [payments] = await connection.query(
-      `SELECT p.*, u.name as user_name, u.user_id 
-       FROM payments p 
-       JOIN users u ON p.user_id = u.user_id 
-       WHERE p.transaction_id = ?`,
+      'SELECT * FROM payments WHERE transaction_id = ?',
       [transaction_uuid]
     );
 
-    console.log('Found payments:', payments);
-
-    if (!payments.length) {
+    if (payments.length === 0) {
       await connection.rollback();
-      console.log('Payment not found:', transaction_uuid);
-      return res.status(404).json({
-        success: false,
-        message: 'Payment record not found'
-      });
+      return res.status(404).json({ message: 'Payment not found' });
     }
 
     const payment = payments[0];
-    console.log('Found payment:', {
-      ...payment,
-      user_name: payment.user_name,
-      user_id: payment.user_id
-    });
 
     // Check if payment is already processed
-    if (payment.status !== 'pending') {
-      await connection.rollback();
-      console.log('Payment already processed:', {
-        transaction_uuid,
-        currentStatus: payment.status
-      });
-      return res.json({
-        success: true,
-        message: `Payment already ${payment.status}`,
-        payment
-      });
-    }
-
-    // Check if notification already exists for this payment
     const [existingNotifications] = await connection.query(
       'SELECT * FROM notifications WHERE reference_id = ? AND type = "payment"',
       [payment.id]
     );
 
-    if (existingNotifications.length > 0) {
+    // Check if booking already exists
+    const [existingBookings] = await connection.query(
+      'SELECT id FROM bookings WHERE transaction_id = ?',
+      [transaction_uuid]
+    );
+
+    if (existingNotifications.length > 0 || existingBookings.length > 0) {
       await connection.rollback();
-      console.log('Notifications already exist for this payment:', payment.id);
+      console.log('Payment already processed or booking exists');
       return res.json({
         success: true,
-        message: 'Payment already processed and notified',
+        message: 'Payment already processed',
         payment
       });
     }
@@ -184,113 +149,99 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
     const newStatus = status === 'COMPLETE' ? 'completed' : 'failed';
     
     try {
-      console.log('Updating payment status:', {
-        newStatus,
-        transaction_code: transaction_code || refId,
-        transaction_uuid
-      });
-
       // Update payment status
-      const [updateResult] = await connection.query(
+      await connection.query(
         'UPDATE payments SET status = ?, transaction_code = ?, updated_at = NOW() WHERE transaction_id = ?',
-        [newStatus, transaction_code || refId, transaction_uuid]
+        [newStatus, refId, transaction_uuid]
       );
 
-      console.log('Payment status updated:', updateResult);
+      if (newStatus === 'completed') {
+        // Create booking record
+        const [bookingResult] = await connection.query(`
+          INSERT INTO bookings (
+            guide_user_id,
+            tourist_user_id,
+            booking_date,
+            amount,
+            transaction_id,
+            payment_method,
+            status,
+            payment_status,
+            is_read,
+            created_at
+          ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, 0, NOW())
+        `, [
+          payment.guide_id,
+          payment.user_id,
+          total_amount,
+          transaction_uuid,
+          'esewa',
+          'completed',  // Set status to completed immediately when payment is completed
+          'completed'   // Set payment_status to completed
+        ]);
 
-      // Get updated payment details
-      const [updatedPayments] = await connection.query(
-        'SELECT * FROM payments WHERE transaction_id = ?',
-        [transaction_uuid]
-      );
-      const updatedPayment = updatedPayments[0];
+        // Create notifications
+        const [touristNotification] = await connection.query(
+          'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
+          [payment.user_id, 'payment', `Thank you! Your payment of NPR ${total_amount} has been completed. Your booking has been confirmed.`, payment.id]
+        );
 
-      // Create notification for tourist
-      console.log('Creating notification for user:', payment.user_id);
-      
-      const [touristNotificationResult] = await connection.query(
-        'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
-        [payment.user_id, 'payment', `Your payment of NPR ${total_amount} has been confirmed`, payment.id]
-      );
+        const [guideNotification] = await connection.query(
+          'INSERT INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), 0)',
+          [payment.guide_id, 'booking', `New booking received! Amount: NPR ${total_amount}`, bookingResult.insertId]
+        );
 
-      console.log('Tourist notification created:', touristNotificationResult);
+        const [adminNotification] = await connection.query(
+          'INSERT INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), 0)',
+          [29, 'payment', `New payment of NPR ${total_amount} received. The booking has been confirmed.`, payment.id]
+        );
 
-      // Create notification for admin
-      console.log('Creating notification for admin');
-      const [adminNotificationResult] = await connection.query(
-        'INSERT INTO notifications (user_id, type, content, reference_id, created_at, is_read) VALUES (?, ?, ?, ?, NOW(), ?)',
-        [29, 'payment', `New payment of NPR ${total_amount} received from ${payment.user_name}`, payment.id, false]
-      );
+        // Emit socket notifications
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`guide_${payment.guide_id}`).emit('new_notification', {
+            id: guideNotification.insertId,
+            type: 'booking',
+            content: `New booking received! Amount: NPR ${total_amount}`,
+            reference_id: bookingResult.insertId,
+            created_at: new Date(),
+            is_read: false
+          });
 
-      console.log('Admin notification created:', adminNotificationResult);
-
-      // Get the io instance from the app
-      const io = req.app.get('io');
-      
-      if (io) {
-        // Create tourist notification
-        const touristNotification = {
-          id: touristNotificationResult.insertId,
-          type: 'payment',
-          content: `Your payment of NPR ${total_amount} has been confirmed`,
-          reference_id: payment.id,
-          created_at: new Date(),
-          is_read: false
-        };
-
-        // Create admin notification
-        const adminNotification = {
-          id: adminNotificationResult.insertId,
-          type: 'payment',
-          content: `New payment of NPR ${total_amount} received from ${payment.user_name}`,
-          reference_id: payment.id,
-          amount: total_amount,
-          user_name: payment.user_name,
-          created_at: new Date(),
-          is_read: false
-        };
-
-        console.log('Emitting notification to tourist:', {
-          userId: payment.user_id,
-          notification: touristNotification
-        });
-
-        // Emit to tourist's room
-        io.to(`tourist_${payment.user_id}`).emit('new_notification', touristNotification);
-        
-        // Emit to admin room
-        console.log('Emitting payment notification to admin room');
-        io.to('admin').emit('new_notification', adminNotification);
-      } else {
-        console.error('Socket.io instance not found in app');
-      }
-
-      await connection.commit();
-      console.log('Transaction committed successfully');
-
-      res.json({
-        success: true,
-        message: `Payment ${newStatus}`,
-        payment: updatedPayment,
-        notification: {
-          id: touristNotificationResult.insertId,
-          type: 'payment',
-          content: `Your payment of NPR ${total_amount} has been confirmed`
+          io.to('admin').emit('new_notification', {
+            id: adminNotification.insertId,
+            type: 'payment',
+            content: `New payment of NPR ${total_amount} received. The booking has been confirmed.`,
+            reference_id: payment.id,
+            created_at: new Date(),
+            is_read: false
+          });
         }
-      });
-    } catch (dbError) {
+
+        await connection.commit();
+        res.json({
+          success: true,
+          message: 'Payment completed and booking created',
+          payment: payment,
+          booking: bookingResult
+        });
+      } else {
+        await connection.commit();
+        res.json({
+          success: false,
+          message: 'Payment failed',
+          payment: payment
+        });
+      }
+    } catch (error) {
       await connection.rollback();
-      console.error('Database error:', dbError);
-      throw new Error(`Database error: ${dbError.message}`);
+      console.error('Error processing payment:', error);
+      throw error;
     }
   } catch (error) {
     await connection.rollback();
-    console.error('Error verifying eSewa payment:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Payment verification failed',
-      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    console.error('Error in payment verification:', error);
+    res.status(500).json({ message: 'Failed to verify payment' });
   } finally {
     connection.release();
   }
@@ -349,41 +300,36 @@ router.get('/history', authenticateToken, async (req, res) => {
 // Get all payments (admin only)
 router.get('/admin/payments', authenticateToken, async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.user_type !== 'Admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Admin only.'
-      });
+    // Verify admin status
+    if (!req.user.is_admin) {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
 
-    // Get all payments with user information
-    const [payments] = await pool.query(
-      `SELECT 
-        p.*,
-        u.name as user_name,
-        u.email as user_email
+    const [payments] = await pool.query(`
+      SELECT 
+        p.transaction_id,
+        p.amount,
+        p.payment_method,
+        p.status,
+        p.created_at,
+        u1.name as tourist_name,
+        u2.name as guide_name
       FROM payments p
-      JOIN users u ON p.user_id = u.user_id
-      ORDER BY p.created_at DESC`
-    );
+      LEFT JOIN Users u1 ON p.user_id = u1.user_id
+      LEFT JOIN Users u2 ON p.guide_id = u2.user_id
+      ORDER BY p.created_at DESC
+    `);
 
-    // Mark notifications as read
-    await pool.query(
-      'UPDATE notifications SET is_read = 1 WHERE user_id = ? AND type = "payment"',
-      [req.user.id]
-    );
-
-    res.json({
-      success: true,
-      payments
-    });
+    console.log('Fetched payments:', payments); // Debug log
+    res.json({ payments });
   } catch (error) {
-    console.error('Error fetching admin payments:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch payments'
+    console.error('Error fetching payments:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      sqlMessage: error.sqlMessage
     });
+    res.status(500).json({ message: 'Error fetching payments' });
   }
 });
 

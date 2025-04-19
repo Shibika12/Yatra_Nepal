@@ -131,4 +131,30 @@ router.put('/mark-read', authenticateToken, async (req, res) => {
   }
 });
 
+// Update existing payment notifications
+router.post('/update-payment-notifications', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      `UPDATE notifications 
+       SET content = CONCAT('Thank you! Your payment of NPR ', 
+                          SUBSTRING_INDEX(SUBSTRING_INDEX(content, 'NPR ', -1), ' has', 1),
+                          ' has been completed. Your booking has been confirmed.')
+       WHERE type = 'payment' AND content LIKE '%Your payment of NPR%has been confirmed%'`
+    );
+    
+    res.json({ 
+      success: true,
+      message: `Updated ${result.affectedRows} notifications`,
+      affectedRows: result.affectedRows
+    });
+  } catch (error) {
+    console.error('Error updating payment notifications:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update notifications',
+      error: error.message 
+    });
+  }
+});
+
 export default router; 

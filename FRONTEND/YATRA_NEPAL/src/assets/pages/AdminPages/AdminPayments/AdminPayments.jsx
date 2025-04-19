@@ -90,7 +90,8 @@ const AdminPayments = () => {
         <thead>
           <tr>
             <th>Transaction ID</th>
-            <th>User</th>
+            <th>Tourist</th>
+            <th>Guide</th>
             <th>Amount</th>
             <th>Payment Method</th>
             <th>Status</th>
@@ -101,7 +102,8 @@ const AdminPayments = () => {
           {payments.map((payment) => (
             <tr key={payment.transaction_id}>
               <td>{payment.transaction_id}</td>
-              <td>{payment.user_name}</td>
+              <td>{payment.tourist_name}</td>
+              <td>{payment.guide_name}</td>
               <td>{formatAmount(payment.amount)}</td>
               <td>{payment.payment_method}</td>
               <td>{getStatusBadge(payment.status)}</td>

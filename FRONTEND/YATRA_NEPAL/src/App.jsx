@@ -4,6 +4,7 @@ import Payment from './assets/pages/Payment/Payment';
 import AuthRoute from './utils/AuthRoute';
 import TouristMessages from './assets/pages/TouristMessages/TouristMessages';
 import PaymentSuccess from './assets/pages/Payment/PaymentSuccess';
+import GuideBookings from './assets/pages/GuideBookings/GuideBookings';
 
 // Page imports
 import Home from "./assets/pages/Home/Home";
@@ -272,6 +273,15 @@ function App() {
             <AuthRoute>
               <TouristMessages />
             </AuthRoute>
+          } 
+        />
+
+        <Route 
+          path="/guide/bookings" 
+          element={
+            <GuideRoute>
+              <GuideBookings />
+            </GuideRoute>
           } 
         />
 
