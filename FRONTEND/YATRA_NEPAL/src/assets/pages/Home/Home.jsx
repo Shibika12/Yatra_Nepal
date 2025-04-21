@@ -9,10 +9,10 @@ export const Home = () => {
   const navigate = useNavigate();
     const destinations = [
         { src: "./src/assets/images/sway.jpg", title: "Swayambhunath Temple", location: "Kathmandu", className: "large" },
-        { src: "./src/assets/images/redpanda.jpeg", title: "Beautiful Wildlife", location: "Nepal", className: "small" },
-        { src: "./src/assets/images/village.jpg", title: "Amazing Village", location: "Hills", className: "small" },
+        { src: "./src/assets/images/lakhe.jpg", title: "Rich Culture", location: "Nepal", className: "small" },
+        { src: "./src/assets/images/Villages.jpg", title: "Amazing Villages", location: "Hills", className: "small" },
         
-        { src: "./src/assets/images/rhino.jpg", title: "Rare Wildlife", location: "Chitwan", className: "wide" }
+        { src: "./src/assets/images/deer.jpeg", title: "Rare Wildlife", location: "Chitwan", className: "wide" }
       ];
       
     const services = [
