@@ -197,13 +197,13 @@ const HireGuide = () => {
           </div>
           <div className="step">
             <div className="step-number">2</div>
-            <h3>Book Tour</h3>
-            <p>Schedule your preferred date</p>
+            <h3>Chat with Guide</h3>
+            <p>Book your trip with your guide via chat</p>
           </div>
           <div className="step">
             <div className="step-number">3</div>
-            <h3>Enjoy Trip</h3>
-            <p>Experience Nepal with your guide</p>
+            <h3>Book Tour</h3>
+            <p>Pay for your trip and confirm your booking</p>
           </div>
         </div>
       </section>

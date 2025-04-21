@@ -120,7 +120,7 @@ export const Home = () => {
       
     </div>
     <div className="blog-image">
-      <img src="./src/assets/images/travel.jpg" alt="Hiker in nature"/>
+      <img src="./src/assets/images/pexels-sarojgajurel7-1392099.jpg" alt="Hiker in nature"/>
       <button 
         className="read-more-btn"
         onClick={() => navigate('/blogs')}
