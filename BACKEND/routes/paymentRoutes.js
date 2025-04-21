@@ -245,13 +245,14 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
           }
 
           if (guideNotification.affectedRows > 0) {
-            io.to(`guide_${payment.guide_id}`).emit('new_notification', {
+            io.to(`user_${payment.guide_id}`).emit('new_notification', {
               id: guideNotification.insertId,
               type: 'booking',
               content: `New booking received! Amount: NPR ${total_amount}`,
               reference_id: bookingResult.insertId,
               created_at: new Date(),
-              is_read: false
+              is_read: false,
+              notification_type: 'booking'
             });
           }
 

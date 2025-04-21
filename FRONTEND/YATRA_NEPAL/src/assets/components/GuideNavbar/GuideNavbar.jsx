@@ -51,7 +51,9 @@ const GuideNavbar = () => {
         if (location.pathname !== '/guide/reviews' && notification.type === 'review') {
           setUnreadReviews(prev => prev + 1);
         }
-        if (location.pathname !== '/guide/bookings' && notification.type === 'booking') {
+        if (location.pathname !== '/guide/bookings' && 
+            (notification.type === 'booking' || notification.notification_type === 'booking')) {
+          console.log('Received booking notification:', notification);
           setUnreadBookings(prev => prev + 1);
         }
       });
@@ -94,7 +96,7 @@ const GuideNavbar = () => {
       const response = await axios.get('http://localhost:3002/api/guides/unread-bookings-count', {
         headers: getHeaders()
       });
-      setUnreadBookings(response.data.unreadCount || 0);
+      setUnreadBookings(response.data.count || 0);
     } catch (error) {
       console.error('Error fetching unread bookings count:', error);
     }
