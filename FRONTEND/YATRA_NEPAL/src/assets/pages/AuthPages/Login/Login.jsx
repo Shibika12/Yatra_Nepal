@@ -53,6 +53,10 @@ export const Login = () => {
     }
   };
 
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
+  };
+
   return (
     <div>
       <Navbar />
@@ -93,14 +97,12 @@ export const Login = () => {
                 </span>
               </div>
 
-              
+              <div className="forgot-password">
+                <span onClick={handleForgotPassword}>Forgot Password?</span>
+              </div>
 
               <button type="submit">Login</button>
-              </form>
-
-            
-
-            
+            </form>
 
             <div className="signup">
               Not Registered yet? <Link to="/signup">Sign up</Link>

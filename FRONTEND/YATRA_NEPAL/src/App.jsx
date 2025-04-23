@@ -29,6 +29,7 @@ import GuideMessages from './assets/pages/GuideMessages/GuideMessages';
 import AllBlogs from './assets/pages/AllBlogs/AllBlogs';
 import AdminPayments from './assets/pages/AdminPages/AdminPayments/AdminPayments';
 import AdminUsers from './assets/pages/Admin/AdminUsers.jsx';
+import ForgotPassword from './assets/pages/AuthPages/ForgotPassword/ForgotPassword';
 
 // Route protection components
 const PublicRoute = ({ children }) => {
@@ -307,6 +308,8 @@ function App() {
 
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/payment-failure" element={<Navigate to="/payment" />} />
+
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </BrowserRouter>
   );

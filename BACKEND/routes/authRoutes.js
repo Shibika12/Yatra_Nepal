@@ -6,6 +6,7 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import { sendVerificationEmail } from '../utils/emailService.js';
+import nodemailer from 'nodemailer';
 
 const router = express.Router();
 
@@ -440,6 +441,111 @@ router.put('/admin/verify-guide/:docId', async (req, res) => {
             error: error.message 
         });
     }
+});
+
+// Send OTP
+router.post('/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Check if user exists
+    const [users] = await pool.query('SELECT * FROM Users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiryTime = new Date(Date.now() + 60000); // 60 seconds from now
+
+    // Update user with OTP and expiry
+    await pool.query(
+      'UPDATE Users SET reset_password_token = ?, reset_password_expires = ? WHERE email = ?',
+      [otp, expiryTime, email]
+    );
+
+    // Send email with OTP
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Password Reset OTP - Yatra Nepal',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2196F3;">Yatra Nepal - Password Reset</h2>
+          <p>Your OTP for password reset is:</p>
+          <h1 style="color: #2196F3; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+          <p>This OTP will expire in 60 seconds.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ message: 'OTP sent successfully' });
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ message: 'Failed to send OTP' });
+  }
+});
+
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const [users] = await pool.query(
+      'SELECT * FROM Users WHERE email = ? AND reset_password_token = ? AND reset_password_expires > NOW()',
+      [email, otp]
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    res.json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ message: 'Failed to verify OTP' });
+  }
+});
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    // Verify OTP again
+    const [users] = await pool.query(
+      'SELECT * FROM Users WHERE email = ? AND reset_password_token = ? AND reset_password_expires > NOW()',
+      [email, otp]
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset token
+    await pool.query(
+      'UPDATE Users SET password = ?, reset_password_token = NULL, reset_password_expires = NULL WHERE email = ?',
+      [hashedPassword, email]
+    );
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
 });
 
 export default router;
