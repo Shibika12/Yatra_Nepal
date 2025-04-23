@@ -85,11 +85,18 @@ const GuideProfile = () => {
 
   const tileClassName = ({ date }) => {
     if (!date) return '';
-    const dateStr = date.toISOString().split('T')[0];
+    
+    // Fix: Add one day to compensate for timezone offset
+    const adjustedDate = new Date(date);
+    adjustedDate.setDate(adjustedDate.getDate() + 1);
+    const dateStr = adjustedDate.toISOString().split('T')[0];
+    
     const availabilityData = availability.find(a => {
-      const availDate = a.date ? new Date(a.date).toISOString().split('T')[0] : null;
-      return availDate === dateStr;
+      if (!a.date) return false;
+      const availDate = new Date(a.date);
+      return availDate.toISOString().split('T')[0] === dateStr;
     });
+    
     if (availabilityData) {
       return availabilityData.is_available ? 'available' : 'unavailable';
     }

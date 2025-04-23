@@ -115,63 +115,69 @@ const GuideReview = () => {
     setError('');
 
     if (!verifyAuth()) {
-      setError('Please log in as a tourist to submit a review');
-      setTimeout(() => navigate('/login'), 2000);
-      return;
+        setError('Please log in as a tourist to submit a review');
+        setTimeout(() => navigate('/login'), 2000);
+        return;
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const userData = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('user'));
+        
+        // Add debug logging
+        console.log('User data from localStorage:', userData);
+        console.log('User type:', userData?.user_type || userData?.role);
+        console.log('User ID:', userData?.user_id);
 
-      if (!selectedGuide || !rating || !reviewText.trim()) {
-        setError('Please fill in all fields');
-        return;
-      }
-
-      const reviewData = {
-        user_id: userData.user_id,
-        guide_user_id: selectedGuide,
-        rating: parseInt(rating),
-        review_text: reviewText.trim()
-      };
-
-      console.log('Submitting review:', reviewData);
-
-      const response = await axios.post(
-        `http://localhost:3002/api/guides/reviews/${selectedGuide}`,
-        {
-          rating: parseInt(rating),
-          review_text: reviewText.trim()
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+        if (!selectedGuide || !rating || !reviewText.trim()) {
+            setError('Please fill in all fields');
+            return;
         }
-      );
 
-      console.log('Review submission response:', response.data);
-      alert('Review submitted successfully!');
-      
-      // Clear form after successful submission
-      setSelectedGuide('');
-      setRating(0);
-      setReviewText('');
-      
+        const reviewData = {
+            user_id: userData.user_id,
+            guide_user_id: selectedGuide,
+            rating: parseInt(rating),
+            review_text: reviewText.trim()
+        };
+
+        console.log('Submitting review with data:', reviewData);
+
+        const response = await axios.post(
+            `http://localhost:3002/api/guides/reviews/${selectedGuide}`,
+            {
+                rating: parseInt(rating),
+                review_text: reviewText.trim()
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log('Review submission response:', response.data);
+        alert('Review submitted successfully!');
+        
+        // Clear form after successful submission
+        setSelectedGuide('');
+        setRating(0);
+        setReviewText('');
+        
     } catch (error) {
-      console.error('Error submitting review:', error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setError('Your session has expired. Please log in again.');
-        setTimeout(() => navigate('/login'), 2000);
-      } else if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else {
-        setError('Failed to submit review. Please try again.');
-      }
+        console.error('Error submitting review:', error);
+        console.error('Error response:', error.response?.data);
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setError('Your session has expired. Please log in again.');
+            setTimeout(() => navigate('/login'), 2000);
+        } else if (error.response?.data?.message) {
+            setError(error.response.data.message);
+        } else {
+            setError('Failed to submit review. Please try again.');
+        }
     }
   };
 

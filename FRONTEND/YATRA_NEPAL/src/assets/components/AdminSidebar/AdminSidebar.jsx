@@ -201,6 +201,41 @@ const AdminSidebar = () => {
     }
   };
 
+  // Add effect to fetch unread reviews when component mounts
+  useEffect(() => {
+    fetchUnreadReviews();
+  }, []);
+
+  // Add effect to reset unread reviews count when visiting reviews page
+  useEffect(() => {
+    if (location.pathname === '/admin/reviews') {
+      console.log('Resetting unread reviews count');
+      setUnreadReviews(0);
+      // Mark review notifications as read
+      markReviewNotificationsAsRead();
+    }
+  }, [location.pathname]);
+
+  const markReviewNotificationsAsRead = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      await axios.put('http://localhost:3002/api/notifications/mark-read',
+        { type: 'review' },
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log('Review notifications marked as read');
+    } catch (error) {
+      console.error('Error marking review notifications as read:', error);
+    }
+  };
+
   const fetchPendingGuides = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -276,6 +311,10 @@ const AdminSidebar = () => {
   };
 
   const isActive = (path) => {
+    if (path === '/admin/overview') {
+      // For dashboard, only be active if there's no section parameter
+      return location.pathname === path && !location.search ? 'active' : '';
+    }
     return location.pathname === path ? 'active' : '';
   };
 
@@ -286,53 +325,33 @@ const AdminSidebar = () => {
 
   return (
     <div className="admin-sidebar">
+      <Link to="/admin/overview" className={`sidebar-item ${isActive('/admin/overview') ? 'active' : ''}`}>
+        <FaTachometerAlt /> Dashboard
+      </Link>
+      <Link to="/admin/users" className={`sidebar-item ${isActive('/admin/users') ? 'active' : ''}`}>
+        <FaUsers /> Users
+      </Link>
+      <Link to="/admin/pending-guides" className={`sidebar-item ${isActive('/admin/pending-guides') ? 'active' : ''}`}>
+        <FaUserCheck /> Pending Guides
+        {pendingGuides > 0 && <span className="notification-badge">{pendingGuides}</span>}
+      </Link>
       
-      <div className="sidebar-header">
-        <h3>Admin Panel</h3>
+      <Link to="/admin/blogs" className={`sidebar-item ${isActive('/admin/blogs') ? 'active' : ''}`}>
+        <FaBlog /> Blogs
+        {unreadBlogs > 0 && <span className="notification-badge">{unreadBlogs}</span>}
+      </Link>
+      <Link to="/admin/reviews" className={`sidebar-item ${isActive('/admin/reviews') ? 'active' : ''}`}>
+        <FaStar /> Reviews
+        {unreadReviews > 0 && <span className="notification-badge">{unreadReviews}</span>}
+      </Link>
+      <Link to="/admin/payments" className={`sidebar-item ${isActive('/admin/payments') ? 'active' : ''}`}>
+        <FaMoneyBill /> Payments
+        {unreadPayments > 0 && <span className="notification-badge">{unreadPayments}</span>}
+      </Link>
+      
+      <div className="sidebar-item" onClick={handleLogoutClick}>
+        <FaSignOutAlt /> Logout
       </div>
-      <nav className="sidebar-nav">
-        <Link to="/admin/overview" className={`nav-item ${isActive('/admin/overview')}`}>
-          <FaTachometerAlt />
-          <span>Dashboard</span>
-        </Link>
-        <Link to="/admin/dashboard" className={`nav-item ${isActive('/admin/dashboard')}`}>
-          <FaUserCheck />
-          <span>Pending Guides</span>
-          {pendingGuides > 0 && (
-            <span className="notification-badge">{pendingGuides}</span>
-          )}
-        </Link>
-        <Link to="/admin/users" className={`nav-item ${isActive('/admin/users')}`}>
-          <FaUsers />
-          <span>Users</span>
-        </Link>
-        <Link to="/admin/blogs" className={`nav-item ${isActive('/admin/blogs')}`}>
-          <FaBlog />
-          <span>Blogs</span>
-          {unreadBlogs > 0 && (
-            <span className="notification-badge">{unreadBlogs}</span>
-          )}
-        </Link>
-        <Link to="/admin/reviews" className={`nav-item ${isActive('/admin/reviews')}`}>
-          <FaStar />
-          <span>Guide Reviews</span>
-          {unreadReviews > 0 && (
-            <span className="notification-badge">{unreadReviews}</span>
-          )}
-        </Link>
-        <Link to="/admin/payments" className={`nav-item ${isActive('/admin/payments')}`}>
-          <FaMoneyBill />
-          <span>Payments</span>
-          {unreadPayments > 0 && (
-            <span className="notification-badge">{unreadPayments}</span>
-          )}
-        </Link>
-        
-        <button onClick={handleLogoutClick} className="nav-item logout-btn">
-          <FaSignOutAlt />
-          <span>Logout</span>
-        </button>
-      </nav>
       {/* Logout Confirmation Modal */}
       <Modal 
         show={showLogoutModal} 

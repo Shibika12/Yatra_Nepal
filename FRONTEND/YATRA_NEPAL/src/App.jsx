@@ -18,7 +18,6 @@ import { GuideValidationForm } from "./assets/pages/GuideValidation/GuideValidat
 import GuideDetails from "./assets/pages/GuideDetails/GuideDetails";
 import AdminOverview from "./assets/pages/AdminOverview/AdminOverview";
 import AdminSidebar from "./assets/components/AdminSidebar/AdminSidebar";
-import AdminUsers from "./assets/pages/AdminUsers/AdminUsers";
 import AdminBlogs from "./assets/pages/AdminBlogs/AdminBlogs";
 import AdminReviews from "./assets/pages/AdminReviews/AdminReviews";
 import AdminSettings from "./assets/pages/AdminSettings/AdminSettings";
@@ -29,6 +28,7 @@ import GuideReviews from './assets/pages/GuideReviews/GuideReviews';
 import GuideMessages from './assets/pages/GuideMessages/GuideMessages';
 import AllBlogs from './assets/pages/AllBlogs/AllBlogs';
 import AdminPayments from './assets/pages/AdminPages/AdminPayments/AdminPayments';
+import AdminUsers from './assets/pages/Admin/AdminUsers.jsx';
 
 // Route protection components
 const PublicRoute = ({ children }) => {
@@ -193,33 +193,32 @@ function App() {
         } />
 
         {/* Admin Routes */}
-        <Route path="/admin/dashboard" element={
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        } />
-
-        <Route path="/admin/guide/:guideId" element={
-          <AdminRoute>
-            <GuideDetails />
-          </AdminRoute>
-        } />
-
         <Route path="/admin/overview" element={
           <AdminRoute>
             <AdminOverview />
           </AdminRoute>
         } />
 
-        <Route path="/admin/settings" element={
+        <Route path="/admin/pending-guides" element={
           <AdminRoute>
-            <AdminSettings />
+            <AdminDashboard />
           </AdminRoute>
         } />
 
         <Route path="/admin/users" element={
           <AdminRoute>
-            <AdminUsers />
+            <div style={{ display: 'flex' }}>
+              <AdminSidebar />
+              <div style={{ flexGrow: 1 }}>
+                <AdminUsers />
+              </div>
+            </div>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/guide/:guideId" element={
+          <AdminRoute>
+            <GuideDetails />
           </AdminRoute>
         } />
 
@@ -234,6 +233,27 @@ function App() {
             <AdminReviews />
           </AdminRoute>
         } />
+
+        <Route path="/admin/settings" element={
+          <AdminRoute>
+            <AdminSettings />
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/payments" element={
+          <AdminRoute>
+            <div style={{ display: 'flex' }}>
+              <AdminSidebar />
+              <div style={{ flexGrow: 1 }}>
+                <AdminPayments />
+              </div>
+            </div>
+          </AdminRoute>
+        } />
+
+        {/* Redirect /admin and /admin/dashboard to /admin/overview */}
+        <Route path="/admin" element={<Navigate to="/admin/overview" />} />
+        <Route path="/admin/dashboard" element={<Navigate to="/admin/overview" />} />
 
         <Route path="/blogs" element={<Blogs />} />
 
@@ -286,16 +306,6 @@ function App() {
         />
 
         <Route path="/payment-success" element={<PaymentSuccess />} />
-        <Route path="/admin/payments" element={
-          <AdminRoute>
-            <div style={{ display: 'flex' }}>
-              <AdminSidebar />
-              <div style={{ flexGrow: 1 }}>
-                <AdminPayments />
-              </div>
-            </div>
-          </AdminRoute>
-        } />
         <Route path="/payment-failure" element={<Navigate to="/payment" />} />
       </Routes>
     </BrowserRouter>

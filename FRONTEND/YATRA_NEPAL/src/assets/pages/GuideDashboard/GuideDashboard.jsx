@@ -341,12 +341,13 @@ const GuideDashboard = () => {
         return;
       }
 
-      const dateStr = selectedDate.toISOString().split('T')[0];
-      console.log('Updating availability:', {
-        date: dateStr,
-        is_available: isAvailable,
-        user_id: user.user_id
-      });
+      // Fix: Add one day to compensate for timezone offset
+      const dateObj = new Date(selectedDate);
+      dateObj.setDate(dateObj.getDate() + 1);
+      const dateStr = dateObj.toISOString().split('T')[0];
+
+      console.log('Selected date:', selectedDate);
+      console.log('Adjusted date for update:', dateStr);
 
       const response = await axios.post(`http://localhost:3002/api/guides/guide-availability/${user.user_id}`, {
         date: dateStr,
@@ -365,11 +366,18 @@ const GuideDashboard = () => {
 
   const tileClassName = ({ date }) => {
     if (!date) return '';
-    const dateStr = date.toISOString().split('T')[0];
+    
+    // Fix: Add one day to compensate for timezone offset
+    const adjustedDate = new Date(date);
+    adjustedDate.setDate(adjustedDate.getDate() + 1);
+    const dateStr = adjustedDate.toISOString().split('T')[0];
+    
     const availabilityData = availability.find(a => {
-      const availDate = a.date ? new Date(a.date).toISOString().split('T')[0] : null;
-      return availDate === dateStr;
+      if (!a.date) return false;
+      const availDate = new Date(a.date);
+      return availDate.toISOString().split('T')[0] === dateStr;
     });
+    
     if (availabilityData) {
       return availabilityData.is_available ? 'available' : 'unavailable';
     }

@@ -165,7 +165,7 @@ router.get('/reviews/:guideId', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        if (userCheck[0].user_type !== 'Guide') {
+        if (userCheck[0].user_type.toLowerCase() !== 'guide') {
             return res.status(400).json({ message: 'User is not a guide' });
         }
 
@@ -248,120 +248,87 @@ router.get('/reviews/:guideId', async (req, res) => {
 router.post('/reviews/:guideId', authenticateToken, async (req, res) => {
     try {
         const { rating, review_text } = req.body;
-        const tourist_id = req.user.userId || req.user.user_id;
+        // Get user_id from the authenticated user object (using any of the consistent properties)
+        const tourist_id = req.user.user_id || req.user.id || req.user.userId;
         const guide_user_id = req.params.guideId;
 
-        // Validate input
+        console.log('Review submission attempt:', {
+            tourist_id,
+            guide_user_id,
+            rating,
+            review_text,
+            user: req.user
+        });
+
+        // Validate required fields
         if (!rating || !review_text) {
             return res.status(400).json({ message: 'Rating and review text are required' });
         }
 
         // Start transaction
-        await pool.query('START TRANSACTION');
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
 
-        // First check if the user exists and is a guide
-        const [userCheck] = await pool.query(
-            'SELECT user_id, user_type FROM Users WHERE user_id = ?',
-            [guide_user_id]
-        );
+        try {
+            // Check if the user is a tourist
+            const [userCheck] = await connection.query(
+                'SELECT user_type FROM Users WHERE user_id = ?',
+                [tourist_id]
+            );
 
-        if (!userCheck.length) {
-            await pool.query('ROLLBACK');
-            return res.status(404).json({ message: 'Guide not found' });
-        }
+            console.log('User check result:', userCheck);
 
-        if (userCheck[0].user_type !== 'Guide') {
-            await pool.query('ROLLBACK');
-            return res.status(400).json({ message: 'User is not a guide' });
-        }
+            if (!userCheck.length || userCheck[0].user_type.toLowerCase() !== 'tourist') {
+                await connection.rollback();
+                console.log('User check failed:', {
+                    userExists: userCheck.length > 0,
+                    userType: userCheck[0]?.user_type,
+                    tourist_id,
+                    user: req.user
+                });
+                return res.status(403).json({ 
+                    message: 'Only tourists can submit reviews',
+                    details: {
+                        userExists: userCheck.length > 0,
+                        userType: userCheck[0]?.user_type,
+                        tourist_id
+                    }
+                });
+            }
 
-        // Get guide_id from guides table using user_id
-        const [guideResult] = await pool.query(
-            'SELECT guide_id FROM guides WHERE user_id = ?',
-            [guide_user_id]
-        );
-
-        let guide_id;
-        if (!guideResult.length) {
-            // If guide entry doesn't exist, create one
-            const [insertResult] = await pool.query(
-                'INSERT INTO guides (user_id) VALUES (?)',
+            // Get guide_id from guides table
+            const [guideResult] = await connection.query(
+                'SELECT guide_id FROM guides WHERE user_id = ?',
                 [guide_user_id]
             );
-            guide_id = insertResult.insertId;
-        } else {
-            guide_id = guideResult[0].guide_id;
-        }
 
-        // Check if tourist has already reviewed this guide
-        const [existingReview] = await pool.query(
-            'SELECT review_id FROM guide_reviews WHERE guide_id = ? AND user_id = ?',
-            [guide_id, tourist_id]
-        );
+            if (!guideResult.length) {
+                await connection.rollback();
+                return res.status(404).json({ message: 'Guide not found' });
+            }
 
-        if (existingReview.length > 0) {
-            await pool.query('ROLLBACK');
-            return res.status(400).json({ message: 'You have already reviewed this guide' });
-        }
+            const guide_id = guideResult[0].guide_id;
 
-        // Insert the review
-        const [reviewResult] = await pool.query(
-            'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text, is_read) VALUES (?, ?, ?, ?, FALSE)',
-            [guide_id, tourist_id, rating, review_text]
-        );
+            // Insert the review
+            const [result] = await connection.query(
+                'INSERT INTO guide_reviews (guide_id, user_id, rating, review_text) VALUES (?, ?, ?, ?)',
+                [guide_id, tourist_id, rating, review_text]
+            );
 
-        // Get tourist name for notification
-        const [touristResult] = await pool.query(
-            'SELECT name FROM Users WHERE user_id = ?',
-            [tourist_id]
-        );
-        const touristName = touristResult[0]?.name || 'A tourist';
-
-        // Create notification for admin
-        const [notificationResult] = await pool.query(
-            'INSERT INTO notifications (user_id, type, content, reference_id, created_at) VALUES (?, ?, ?, ?, NOW())',
-            [29, 'review', `New guide review from ${touristName}`, reviewResult.insertId]
-        );
-
-        console.log('Created review notification for admin:', notificationResult.insertId);
-
-        // Emit socket events for real-time notification
-        if (req.app.get('io')) {
-            const io = req.app.get('io');
-            
-            console.log('Emitting new_review event to admin room');
-            // Emit to admin's room
-            io.to('admin').emit('new_review', {
-                review_id: reviewResult.insertId,
-                tourist_name: touristName,
-                rating: rating
+            await connection.commit();
+            res.status(201).json({
+                message: 'Review created successfully',
+                review_id: result.insertId
             });
-
-            console.log('Emitting new_notification event to admin room');
-            // Emit notification
-            io.to('admin').emit('new_notification', {
-                id: notificationResult.insertId,
-                type: 'review',
-                content: `New guide review from ${touristName}`,
-                reference_id: reviewResult.insertId,
-                created_at: new Date(),
-                is_read: false
-            });
-        } else {
-            console.log('Socket.io instance not found in app');
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
         }
-
-        await pool.query('COMMIT');
-
-        res.status(201).json({
-            message: 'Review submitted successfully',
-            review_id: reviewResult.insertId
-        });
-
     } catch (error) {
-        await pool.query('ROLLBACK');
-        console.error('Error submitting review:', error);
-        res.status(500).json({ message: 'Failed to submit review', error: error.message });
+        console.error('Error creating review:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
@@ -466,7 +433,7 @@ router.get('/guide-availability/:userId', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        if (userCheck[0].user_type !== 'Guide') {
+        if (userCheck[0].user_type.toLowerCase() !== 'guide') {
             return res.status(403).json({ message: 'User is not a guide' });
         }
 
@@ -527,7 +494,7 @@ router.post('/guide-availability/:userId', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        if (userCheck[0].user_type !== 'Guide') {
+        if (userCheck[0].user_type.toLowerCase() !== 'guide') {
             console.log('User is not a guide:', userCheck[0].user_type);
             return res.status(403).json({ message: 'User is not a guide' });
         }

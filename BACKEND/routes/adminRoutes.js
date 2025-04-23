@@ -533,4 +533,28 @@ function fillMissingDates(results) {
   return filledData;
 }
 
+// Get all tourists
+router.get('/tourists', async (req, res) => {
+  try {
+    const [tourists] = await pool.query(`
+      SELECT 
+        user_id,
+        name,
+        email,
+        phone_number,
+        nationality,
+        created_at,
+        is_verified
+      FROM Users
+      WHERE user_type = 'Tourist'
+      ORDER BY created_at DESC
+    `);
+    
+    res.json(tourists);
+  } catch (error) {
+    console.error('Error fetching tourists:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router; 
