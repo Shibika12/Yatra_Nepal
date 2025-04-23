@@ -557,4 +557,109 @@ router.get('/tourists', async (req, res) => {
   }
 });
 
+// Get count of unread blogs
+router.get('/unread-blogs-count', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'SELECT COUNT(*) as count FROM blogs WHERE is_read = FALSE',
+      []
+    );
+    res.json({ count: result[0].count });
+  } catch (error) {
+    console.error('Error fetching unread blogs count:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch unread blogs count',
+      error: error.message 
+    });
+  }
+});
+
+// Get count of unread reviews
+router.get('/unread-reviews-count', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'SELECT COUNT(*) as count FROM guide_reviews WHERE is_read = FALSE',
+      []
+    );
+    res.json({ count: result[0].count });
+  } catch (error) {
+    console.error('Error fetching unread reviews count:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch unread reviews count',
+      error: error.message 
+    });
+  }
+});
+
+// Get count of unread payments
+router.get('/unread-payments-count', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'SELECT COUNT(*) as count FROM payments WHERE is_read = FALSE',
+      []
+    );
+    res.json({ count: result[0].count });
+  } catch (error) {
+    console.error('Error fetching unread payments count:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch unread payments count',
+      error: error.message 
+    });
+  }
+});
+
+// Mark blogs as read
+router.put('/mark-blogs-read', authenticateToken, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE blogs SET is_read = TRUE WHERE is_read = FALSE'
+    );
+    res.json({ success: true, message: 'All blogs marked as read' });
+  } catch (error) {
+    console.error('Error marking blogs as read:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to mark blogs as read',
+      error: error.message 
+    });
+  }
+});
+
+// Mark reviews as read
+router.put('/mark-reviews-read', authenticateToken, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE guide_reviews SET is_read = TRUE WHERE is_read = FALSE'
+    );
+    res.json({ success: true, message: 'All reviews marked as read' });
+  } catch (error) {
+    console.error('Error marking reviews as read:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to mark reviews as read',
+      error: error.message 
+    });
+  }
+});
+
+// Mark payments as read
+router.put('/mark-payments-read', authenticateToken, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE payments SET is_read = TRUE WHERE is_read = FALSE'
+    );
+    res.json({ success: true, message: 'All payments marked as read' });
+  } catch (error) {
+    console.error('Error marking payments as read:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to mark payments as read',
+      error: error.message 
+    });
+  }
+});
+
 export default router; 

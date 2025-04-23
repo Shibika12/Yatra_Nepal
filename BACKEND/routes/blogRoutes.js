@@ -179,6 +179,7 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
             }
         }
 
+        // Emit socket event for new blog
         await pool.query('COMMIT');
 
         res.status(201).json({

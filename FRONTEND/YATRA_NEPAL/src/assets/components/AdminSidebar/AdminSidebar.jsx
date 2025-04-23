@@ -16,283 +16,108 @@ const AdminSidebar = () => {
   const [unreadReviews, setUnreadReviews] = useState(0);
   const [pendingGuides, setPendingGuides] = useState(0);
   const [unreadPayments, setUnreadPayments] = useState(0);
-  const [socket, setSocket] = useState(null);
 
-  useEffect(() => {
-    // Get user data including ID
-    const userData = localStorage.getItem('user');
-    const user = userData ? JSON.parse(userData) : null;
-    console.log('Current user data:', user);
+  // Function to mark items as read
+  const markItemsAsRead = async (type) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-    if (!user || !user.user_id) {
-      console.error('No user data or user ID found');
-      return;
+    try {
+      await axios.put(
+        `http://localhost:3002/api/admin/mark-${type}-read`,
+        {},
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error(`Error marking ${type} as read:`, error);
     }
+  };
 
-    // Fetch initial unread counts
-    fetchUnreadBlogs();
-    fetchUnreadReviews();
-    fetchPendingGuides();
-    fetchUnreadPayments();
+  // Effect to handle page visits and mark items as read
+  useEffect(() => {
+    if (location.pathname === '/admin/blogs') {
+      markItemsAsRead('blogs');
+      setUnreadBlogs(0);
+    } else if (location.pathname === '/admin/reviews') {
+      markItemsAsRead('reviews');
+      setUnreadReviews(0);
+    } else if (location.pathname === '/admin/payments') {
+      markItemsAsRead('payments');
+      setUnreadPayments(0);
+    }
+  }, [location.pathname]);
 
-    // Set up socket connection
+  // Effect to fetch initial counts and set up socket listeners
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        // Fetch unread blogs count
+        const blogsResponse = await axios.get('http://localhost:3002/api/admin/unread-blogs-count', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setUnreadBlogs(blogsResponse.data.count || 0);
+
+        // Fetch unread reviews count
+        const reviewsResponse = await axios.get('http://localhost:3002/api/admin/unread-reviews-count', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setUnreadReviews(reviewsResponse.data.count || 0);
+
+        // Fetch pending guides count
+        const guidesResponse = await axios.get('http://localhost:3002/api/admin/pending-guides-count', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setPendingGuides(guidesResponse.data.count || 0);
+
+        // Fetch unread payments count
+        const paymentsResponse = await axios.get('http://localhost:3002/api/admin/unread-payments-count', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setUnreadPayments(paymentsResponse.data.count || 0);
+      } catch (error) {
+        console.error('Error fetching counts:', error);
+      }
+    };
+
+    fetchCounts();
+
+    // Set up socket connection for real-time updates
     const token = localStorage.getItem('token');
     if (token) {
-      console.log('Setting up socket connection for admin...');
-      const newSocket = io('http://localhost:3002', {
+      const socket = io('http://localhost:3002', {
         auth: { token }
       });
 
-      // Store socket in state
-      setSocket(newSocket);
-
-      // Join admin room
-      newSocket.emit('join_admin', { userId: user.user_id });
-      console.log('Emitted join_admin event with userId:', user.user_id);
-
-      // Listen for notifications
-      newSocket.on('new_notification', (data) => {
-        console.log('Received new_notification event:', data);
-        
-        // Check if we're already showing this notification
-        if (data.reference_id) {
-          const isDuplicate = document.querySelectorAll(`[data-notification-ref="${data.reference_id}"]`).length > 0;
-          if (isDuplicate) {
-            console.log('Duplicate notification detected, skipping:', data);
-            return;
-          }
-        }
-
-        if (data.type === 'blog' && location.pathname !== '/admin/blogs') {
+      socket.on('new_blog_added', () => {
+        if (location.pathname !== '/admin/blogs') {
           setUnreadBlogs(prev => prev + 1);
-        } else if (data.type === 'review' && location.pathname !== '/admin/reviews') {
+        }
+      });
+
+      socket.on('new_review_added', () => {
+        if (location.pathname !== '/admin/reviews') {
           setUnreadReviews(prev => prev + 1);
-        } else if (data.type === 'payment' && location.pathname !== '/admin/payments') {
+        }
+      });
+
+      socket.on('new_payment_added', () => {
+        if (location.pathname !== '/admin/payments') {
           setUnreadPayments(prev => prev + 1);
         }
       });
 
-      // Socket connection events
-      newSocket.on('connect', () => {
-        console.log('Socket connected successfully');
-        // Fetch notifications again after successful connection
-        fetchUnreadBlogs();
-        fetchUnreadReviews();
-        fetchPendingGuides();
-        fetchUnreadPayments();
-      });
-
-      newSocket.on('connect_error', (error) => {
-        console.error('Socket connection error:', error);
-      });
-
-      // Reset counts when visiting respective pages
-      if (location.pathname === '/admin/payments') {
-        console.log('Resetting unread payments count');
-        setUnreadPayments(0);
-        // Mark payment notifications as read
-        markPaymentNotificationsAsRead(token);
-      }
-
-      // Clean up socket connection
-      return () => {
-        console.log('Cleaning up socket connection');
-        if (newSocket) {
-          newSocket.disconnect();
-        }
-      };
-    }
-  }, [location.pathname]);
-
-  const markPaymentNotificationsAsRead = async (token) => {
-    try {
-      await axios.put('http://localhost:3002/api/notifications/mark-read',
-        { type: 'payment' },
-        { 
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      console.log('Payment notifications marked as read');
-    } catch (error) {
-      console.error('Error marking payment notifications as read:', error);
-    }
-  };
-
-  const fetchUnreadBlogs = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      if (!token || !user || !user.user_id) {
-        console.log('No token or user data found, skipping unread blogs fetch');
-        return;
-      }
-
-      console.log('Fetching unread blog notifications for user:', user.user_id);
-      const response = await axios.get('http://localhost:3002/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      socket.on('new_guide_application', () => {
+        if (location.pathname !== '/admin/pending-guides') {
+          setPendingGuides(prev => prev + 1);
         }
       });
 
-      console.log('Raw notifications response:', response.data);
-      
-      // Count unread blog notifications
-      const unreadCount = response.data.filter(notif => {
-        console.log('Checking notification:', notif);
-        const isUnreadBlog = notif.type === 'blog' && !notif.is_read;
-        console.log('Is unread blog:', isUnreadBlog);
-        return isUnreadBlog;
-      }).length;
-
-      console.log('Final unread blog notifications count:', unreadCount);
-      setUnreadBlogs(unreadCount);
-    } catch (error) {
-      console.error('Error fetching unread blogs:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-      }
+      return () => socket.disconnect();
     }
-  };
-
-  const fetchUnreadReviews = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      if (!token || !user || !user.user_id) {
-        console.log('No token or user data found, skipping unread reviews fetch');
-        return;
-      }
-
-      console.log('Fetching unread review notifications for user:', user.user_id);
-      const response = await axios.get('http://localhost:3002/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('Raw notifications response:', response.data);
-      
-      // Count unread review notifications
-      const unreadCount = response.data.filter(notif => {
-        console.log('Checking notification:', notif);
-        const isUnreadReview = notif.type === 'review' && !notif.is_read;
-        console.log('Is unread review:', isUnreadReview);
-        return isUnreadReview;
-      }).length;
-
-      console.log('Final unread review notifications count:', unreadCount);
-      setUnreadReviews(unreadCount);
-    } catch (error) {
-      console.error('Error fetching unread reviews:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-      }
-    }
-  };
-
-  // Add effect to fetch unread reviews when component mounts
-  useEffect(() => {
-    fetchUnreadReviews();
   }, []);
-
-  // Add effect to reset unread reviews count when visiting reviews page
-  useEffect(() => {
-    if (location.pathname === '/admin/reviews') {
-      console.log('Resetting unread reviews count');
-      setUnreadReviews(0);
-      // Mark review notifications as read
-      markReviewNotificationsAsRead();
-    }
-  }, [location.pathname]);
-
-  const markReviewNotificationsAsRead = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      await axios.put('http://localhost:3002/api/notifications/mark-read',
-        { type: 'review' },
-        { 
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      console.log('Review notifications marked as read');
-    } catch (error) {
-      console.error('Error marking review notifications as read:', error);
-    }
-  };
-
-  const fetchPendingGuides = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      if (!token || !user || !user.user_id) {
-        console.log('No token or user data found, skipping pending guides fetch');
-        return;
-      }
-
-      console.log('Fetching pending guides count for user:', user.user_id);
-      const response = await axios.get('http://localhost:3002/api/admin/pending-guides-count', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('Pending guides count response:', response.data);
-      setPendingGuides(response.data.count || 0);
-    } catch (error) {
-      console.error('Error fetching pending guides count:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-      }
-    }
-  };
-
-  const fetchUnreadPayments = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.log('No token found, skipping unread payments fetch');
-        return;
-      }
-
-      console.log('Fetching unread payment notifications');
-      const response = await axios.get('http://localhost:3002/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      // Count unread payment notifications
-      const unreadCount = response.data.filter(notif => {
-        return notif.type === 'payment' && !notif.is_read;
-      }).length;
-
-      console.log('Setting initial unread payments count to:', unreadCount);
-      setUnreadPayments(unreadCount);
-    } catch (error) {
-      console.error('Error fetching unread payments:', error);
-    }
-  };
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -335,7 +160,6 @@ const AdminSidebar = () => {
         <FaUserCheck /> Pending Guides
         {pendingGuides > 0 && <span className="notification-badge">{pendingGuides}</span>}
       </Link>
-      
       <Link to="/admin/blogs" className={`sidebar-item ${isActive('/admin/blogs') ? 'active' : ''}`}>
         <FaBlog /> Blogs
         {unreadBlogs > 0 && <span className="notification-badge">{unreadBlogs}</span>}
@@ -348,7 +172,6 @@ const AdminSidebar = () => {
         <FaMoneyBill /> Payments
         {unreadPayments > 0 && <span className="notification-badge">{unreadPayments}</span>}
       </Link>
-      
       <div className="sidebar-item" onClick={handleLogoutClick}>
         <FaSignOutAlt /> Logout
       </div>

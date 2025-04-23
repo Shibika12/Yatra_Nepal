@@ -91,6 +91,9 @@ router.post('/esewa/create', authenticateToken, async (req, res) => {
         fields: esewaData
       }
     });
+
+    // Emit socket event for new payment
+    req.app.get('io').emit('new_payment_added');
   } catch (error) {
     console.error('Error creating eSewa payment:', error);
     res.status(500).json({
