@@ -417,13 +417,13 @@ router.get('/all-guides', async (req, res) => {
     }
 });
 
-// Get guide availability
+
 router.get('/guide-availability/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         console.log('Fetching availability for user:', userId);
 
-        // First check if user exists and is a guide
+
         const [userCheck] = await pool.query(
             'SELECT user_id, user_type FROM Users WHERE user_id = ?',
             [userId]
@@ -437,7 +437,7 @@ router.get('/guide-availability/:userId', async (req, res) => {
             return res.status(403).json({ message: 'User is not a guide' });
         }
 
-        // Get or create guide record
+
         let guideId;
         const [guideCheck] = await pool.query(
             'SELECT guide_id FROM guides WHERE user_id = ?',
@@ -454,7 +454,7 @@ router.get('/guide-availability/:userId', async (req, res) => {
             guideId = guideCheck[0].guide_id;
         }
 
-        // Get availability
+
         const [availability] = await pool.query(
             'SELECT date, is_available FROM guide_availability WHERE guide_id = ? ORDER BY date',
             [guideId]
@@ -468,7 +468,7 @@ router.get('/guide-availability/:userId', async (req, res) => {
     }
 });
 
-// Update guide availability
+
 router.post('/guide-availability/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -638,8 +638,8 @@ router.get('/bookings', authenticateToken, async (req, res) => {
     const [bookings] = await connection.query(`
       SELECT 
         b.id as booking_id,
-        b.guide_user_id,
-        b.tourist_user_id,
+        b.guide_id,
+        b.tourist_id,
         b.booking_date,
         b.amount,
         b.transaction_id,
@@ -651,8 +651,8 @@ router.get('/bookings', authenticateToken, async (req, res) => {
         b.updated_at,
         u.name as tourist_name
       FROM bookings b
-      JOIN Users u ON b.tourist_user_id = u.user_id
-      WHERE b.guide_user_id = ?
+      JOIN Users u ON b.tourist_id = u.user_id
+      WHERE b.guide_id = ?
       ORDER BY b.created_at DESC
     `, [userId]);
 
@@ -684,7 +684,7 @@ router.get('/unread-bookings-count', authenticateToken, async (req, res) => {
     const [result] = await connection.query(`
       SELECT COUNT(*) as count
       FROM bookings
-      WHERE guide_user_id = ? AND is_read = 0
+      WHERE guide_id = ? AND is_read = 0
     `, [userId]);
 
     console.log('Unread bookings count:', result[0].count);

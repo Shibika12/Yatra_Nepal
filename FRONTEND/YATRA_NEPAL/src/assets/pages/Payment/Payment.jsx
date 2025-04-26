@@ -7,7 +7,7 @@ import Footer from '../../components/Footer/Footer';
 import { toast } from 'react-toastify';
 import { submitEsewaPayment } from '../../../utils/esewaPayment';
 
-// Temporarily use a placeholder image URL until you add a QR code image to your project
+
 const dummyQRCode = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/QR_code_for_mobile_English_Wikipedia.svg/1200px-QR_code_for_mobile_English_Wikipedia.svg.png";
 
 const Payment = () => {
@@ -18,17 +18,17 @@ const Payment = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const formRef = useRef(null);
   const [paymentDetails, setPaymentDetails] = useState({
-    amount: 15000, // Your base amount
-    taxAmount: 1500, // 10% tax
-    totalAmount: 16500, // Total including tax
+    amount: 15000, 
+    taxAmount: 1500, 
+    totalAmount: 16500, 
   });
   const [customAmount, setCustomAmount] = useState('');
   const [duration, setDuration] = useState(5);
 
   useEffect(() => {
-    console.log('Current guideId:', guideId); // Debug log
+    console.log('Current guideId:', guideId); 
     if (!guideId) {
-      console.log('No guideId found, redirecting...'); // Debug log
+      console.log('No guideId found, redirecting...'); 
       setLoading(false);
       toast.error('No guide selected. Please select a guide first.');
       navigate('/hireguide');
@@ -37,12 +37,12 @@ const Payment = () => {
     fetchGuideDetails();
   }, [guideId, navigate]);
 
-  // Update payment details when custom amount or duration changes
+
   useEffect(() => {
     if (customAmount) {
       const amount = parseFloat(customAmount);
       if (!isNaN(amount) && amount > 0) {
-        const taxAmount = amount * 0.1; // 10% tax
+        const taxAmount = amount * 0.1; 
         const totalAmount = amount + taxAmount;
         setPaymentDetails({
           amount: amount,
@@ -194,8 +194,31 @@ const Payment = () => {
                       <option value="3">3 Days</option>
                       <option value="4">4 Days</option>
                       <option value="5">5 Days</option>
+                      <option value="6">6 Days</option>
                       <option value="7">7 Days</option>
+                      <option value="8">8 Days</option>
+                      <option value="9">9 Days</option>
                       <option value="10">10 Days</option>
+                      <option value="11">11 Days</option>
+                      <option value="12">12 Days</option>
+                      <option value="13">13 Days</option>
+                      <option value="14">14 Days</option>
+                      <option value="15">15 Days</option>
+                      <option value="16">16 Days</option>
+                      <option value="17">17 Days</option>
+                      <option value="18">18 Days</option>
+                      <option value="19">19 Days</option>
+                      <option value="20">20 Days</option>
+                      <option value="21">21 Days</option>
+                      <option value="22">22 Days</option>
+                      <option value="23">23 Days</option>
+                      <option value="24">24 Days</option>
+                      <option value="25">25 Days</option>
+                      <option value="26">26 Days</option>
+                      <option value="27">27 Days</option>
+                      <option value="28">28 Days</option>
+                      <option value="29">29 Days</option>
+                      <option value="30">30 Days</option>
                     </select>
                   </div>
                 </div>
