@@ -662,4 +662,38 @@ router.put('/mark-payments-read', authenticateToken, async (req, res) => {
   }
 });
 
+// Get all blogs (admin)
+router.get('/blogs', async (req, res) => {
+  try {
+    const [blogs] = await pool.query(`
+      SELECT 
+        b.blog_id,
+        b.content,
+        b.created_at,
+        b.updated_at,
+        u.user_id,
+        u.name as author_name,
+        COUNT(DISTINCT bl.like_id) as likes_count,
+        GROUP_CONCAT(DISTINCT bi.image_path) as images
+      FROM blogs b
+      JOIN Users u ON b.user_id = u.user_id
+      LEFT JOIN blog_images bi ON b.blog_id = bi.blog_id
+      LEFT JOIN blog_likes bl ON b.blog_id = bl.blog_id
+      GROUP BY b.blog_id
+      ORDER BY b.created_at DESC
+    `);
+
+    // Format the response
+    const formattedBlogs = blogs.map(blog => ({
+      ...blog,
+      images: blog.images ? blog.images.split(',') : []
+    }));
+
+    res.json(formattedBlogs);
+  } catch (error) {
+    console.error('Error fetching blogs:', error);
+    res.status(500).json({ message: 'Failed to fetch blogs' });
+  }
+});
+
 export default router; 

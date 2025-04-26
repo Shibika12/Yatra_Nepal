@@ -1,0 +1,74 @@
+{
+  "admin_blog_apis": {
+    "get_all_blogs": {
+      "endpoint": "GET http://localhost:3002/api/admin/blogs",
+      "description": "Get all blogs with their details",
+      "authentication": "Required (Admin token)",
+      "headers": {
+        "Authorization": "Bearer <admin_token>"
+      },
+      "response": {
+        "success": {
+          "status": 200,
+          "body": {
+            "blogs": [
+              {
+                "id": "number",
+                "title": "string",
+                "content": "string",
+                "author_name": "string",
+                "created_at": "date",
+                "status": "string",
+                "like_count": "number",
+                "comment_count": "number"
+              }
+            ]
+          }
+        },
+        "error": {
+          "status": 401,
+          "body": {
+            "message": "Unauthorized - Admin access required"
+          }
+        }
+      }
+    },
+    "delete_blog": {
+      "endpoint": "DELETE http://localhost:3002/api/admin/blogs/:blogId",
+      "description": "Delete a specific blog by ID",
+      "authentication": "Required (Admin token)",
+      "headers": {
+        "Authorization": "Bearer <admin_token>"
+      },
+      "parameters": {
+        "blogId": "The ID of the blog to delete"
+      },
+      "response": {
+        "success": {
+          "status": 200,
+          "body": {
+            "message": "Blog deleted successfully"
+          }
+        },
+        "error": {
+          "status": 401,
+          "body": {
+            "message": "Unauthorized - Admin access required"
+          }
+        },
+        "not_found": {
+          "status": 404,
+          "body": {
+            "message": "Blog not found"
+          }
+        }
+      }
+    }
+  },
+  "notes": [
+    "Replace <admin_token> with the actual admin authentication token",
+    "The blogId in the delete endpoint should be replaced with the actual blog ID",
+    "Both endpoints require admin privileges",
+    "The delete operation cannot be undone"
+  ]
+} 

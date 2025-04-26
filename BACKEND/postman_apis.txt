@@ -1,0 +1,230 @@
+### Authentication APIs ###
+
+# Register User
+POST http://localhost:3002/api/auth/register
+Content-Type: application/json
+
+{
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "test1234",
+    "phone_number": "1234567890",
+    "nationality": "Nepal",
+    "user_type": "tourist"  // or "guide"
+}
+
+# Login
+POST http://localhost:3002/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@example.com",
+    "password": "test1234"
+}
+
+# Upload Guide Documents
+POST http://localhost:3002/api/auth/upload-documents
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data
+
+citizenship: [File]
+license: [File]
+
+### Blog APIs ###
+
+# Create Blog
+POST http://localhost:3002/api/blogs
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data
+
+content: "This is a test blog"
+images: [File1, File2]
+
+# Get All Blogs
+GET http://localhost:3002/api/blogs
+Authorization: Bearer {{token}}
+
+# Like/Unlike Blog
+POST http://localhost:3002/api/blogs/{{blogId}}/like
+Authorization: Bearer {{token}}
+
+# Delete Blog
+DELETE http://localhost:3002/api/blogs/{{blogId}}
+Authorization: Bearer {{token}}
+
+### Guide APIs ###
+
+# Get Guide Profile
+GET http://localhost:3002/api/guides/guide-profile/{{userId}}
+Authorization: Bearer {{token}}
+
+# Update Guide Profile
+PUT http://localhost:3002/api/guides/guide-profile/{{userId}}
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data
+
+name: "Updated Name"
+phone_number: "9876543210"
+years_of_experience: "2"
+languages: "English, Nepali"
+about: "Guide description"
+specialization: "Trekking"
+profile_pic: [File]
+
+# Update Guide Availability
+POST http://localhost:3002/api/guides/guide-availability/{{guideId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "date": "2025-04-26",
+    "is_available": true
+}
+
+# Add Review
+POST http://localhost:3002/api/guides/reviews/{{guideId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "rating": 4,
+    "review_text": "Excellent guide!"
+}
+
+### Admin APIs ###
+
+# Get All Users
+GET http://localhost:3002/api/admin/users
+Authorization: Bearer {{admin_token}}
+
+# Get All Guides
+GET http://localhost:3002/api/admin/guides
+Authorization: Bearer {{admin_token}}
+
+# Get Pending Guides
+GET http://localhost:3002/api/admin/pending-guides
+Authorization: Bearer {{admin_token}}
+
+# Handle Guide Approval
+POST http://localhost:3002/api/admin/guide-approval
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+    "guideId": 1,
+    "status": "approved",
+    "message": "Your application has been approved"
+}
+
+# Get Guide Reviews
+GET http://localhost:3002/api/admin/guide-reviews
+Authorization: Bearer {{admin_token}}
+
+# Delete Blog (Admin)
+DELETE http://localhost:3002/api/admin/blogs/{{blogId}}
+Authorization: Bearer {{admin_token}}
+
+### Chat APIs ###
+
+# Create Conversation
+POST http://localhost:3002/api/chat/conversations/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "guide_id": 1
+}
+
+# Get Tourist Conversations
+GET http://localhost:3002/api/chat/tourist/conversations
+Authorization: Bearer {{token}}
+
+# Get Guide Conversations
+GET http://localhost:3002/api/chat/guide/conversations
+Authorization: Bearer {{token}}
+
+# Send Message
+POST http://localhost:3002/api/chat/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "conversation_id": 1,
+    "receiver_id": 2,
+    "message": "Hello!"
+}
+
+### Payment APIs ###
+
+# Create Payment
+POST http://localhost:3002/api/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "guide_id": 1,
+    "amount": 1000,
+    "payment_method": "khalti",
+    "transaction_id": "trans_123"
+}
+
+# Get User Payments
+GET http://localhost:3002/api/payments/user
+Authorization: Bearer {{token}}
+
+### Notification APIs ###
+
+# Get All Notifications
+GET http://localhost:3002/api/notifications
+Authorization: Bearer {{token}}
+
+# Mark Notification as Read
+PUT http://localhost:3002/api/notifications/{{notificationId}}/read
+Authorization: Bearer {{token}}
+
+# Mark All Notifications as Read
+PUT http://localhost:3002/api/notifications/read-all
+Authorization: Bearer {{token}}
+
+# Get Unread Count
+GET http://localhost:3002/api/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### Tourist APIs ###
+
+# Get Tourist Profile
+GET http://localhost:3002/api/tourists/profile/{{userId}}
+Authorization: Bearer {{token}}
+
+# Update Tourist Profile
+PUT http://localhost:3002/api/tourists/profile/{{userId}}
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data
+
+name: "Updated Tourist Name"
+phone_number: "9876543210"
+nationality: "Nepal"
+profile_picture: [File]
+
+### Test Users ###
+
+# Admin Login Credentials
+{
+    "email": "admin@gmail.com",
+    "password": "admin1234"
+}
+
+### Variables to Replace ###
+{{token}} - JWT token received after login
+{{admin_token}} - JWT token received after admin login
+{{userId}} - User ID
+{{guideId}} - Guide ID
+{{blogId}} - Blog ID
+{{notificationId}} - Notification ID
+
+### Notes ###
+1. For file uploads, use form-data
+2. Keep Authorization header format as "Bearer {token}"
+3. Replace all {{variables}} with actual values
+4. For admin routes, use admin login credentials
+5. All timestamps should be in YYYY-MM-DD format 

@@ -181,6 +181,13 @@ export const Home = () => {
             <p>
                 Explore Nepal's beauty with local guides for peaks, culture, and hidden gems.
             </p>
+            <p>
+                Book your next adventure with us and experience the best of Nepal.
+            </p>
+            <p>
+                Our guides are experts in their field and will take you on a journey of a lifetime.
+            </p>
+           
         </h1>
     </div>
 </section>

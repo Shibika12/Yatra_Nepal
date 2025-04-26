@@ -169,8 +169,8 @@ router.post('/esewa/verify', authenticateToken, async (req, res) => {
         // Create booking record with INSERT IGNORE to prevent duplicates
         const [bookingResult] = await connection.query(`
           INSERT IGNORE INTO bookings (
-            guide_user_id,
-            tourist_user_id,
+            guide_id,
+            tourist_id,
             booking_date,
             amount,
             transaction_id,

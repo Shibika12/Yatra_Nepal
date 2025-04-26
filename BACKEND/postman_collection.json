@@ -1,0 +1,660 @@
+{
+  "info": {
+    "_postman_id": "12345678-1234-1234-1234-123456789012",
+    "name": "Yatra Nepal API Collection",
+    "description": "Collection of all Yatra Nepal API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"test@example.com\",\n    \"password\": \"test1234\",\n    \"phone_number\": \"1234567890\",\n    \"nationality\": \"Nepal\",\n    \"user_type\": \"tourist\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"test1234\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Upload Guide Documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "citizenship",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "license",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/auth/upload-documents",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "auth", "upload-documents"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Blogs",
+      "item": [
+        {
+          "name": "Create Blog",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "content",
+                  "value": "This is a test blog",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/blogs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "blogs"]
+            }
+          }
+        },
+        {
+          "name": "Get All Blogs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/blogs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "blogs"]
+            }
+          }
+        },
+        {
+          "name": "Like/Unlike Blog",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/blogs/{{blogId}}/like",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "blogs", "{{blogId}}", "like"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Guide",
+      "item": [
+        {
+          "name": "Get Guide Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/guides/guide-profile/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "guides", "guide-profile", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Guide Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Updated Name",
+                  "type": "text"
+                },
+                {
+                  "key": "phone_number",
+                  "value": "9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "years_of_experience",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "languages",
+                  "value": "English, Nepali",
+                  "type": "text"
+                },
+                {
+                  "key": "about",
+                  "value": "Guide description",
+                  "type": "text"
+                },
+                {
+                  "key": "specialization",
+                  "value": "Trekking",
+                  "type": "text"
+                },
+                {
+                  "key": "profile_pic",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/guides/guide-profile/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "guides", "guide-profile", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Guide Availability",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"date\": \"2025-04-26\",\n    \"is_available\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/guides/guide-availability/{{guideId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "guides", "guide-availability", "{{guideId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/admin/users",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Handle Guide Approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"guideId\": 1,\n    \"status\": \"approved\",\n    \"message\": \"Your application has been approved\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/admin/guide-approval",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "guide-approval"]
+            }
+          }
+        },
+        {
+          "name": "Get All Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/admin/payments",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Transaction Graph Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/admin/transactions/graph",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "transactions", "graph"]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Payments Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/admin/unread-payments-count",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "unread-payments-count"]
+            }
+          }
+        },
+        {
+          "name": "Mark Payments as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/admin/mark-payments-read",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "mark-payments-read"]
+            }
+          }
+        },
+        {
+          "name": "Get All Blogs (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/admin/blogs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "blogs"]
+            }
+          }
+        },
+        {
+          "name": "Delete Blog (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/admin/blogs/{{blogId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "admin", "blogs", "{{blogId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Get All Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/guides/bookings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "guides", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Bookings Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/guides/unread-bookings-count",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "guides", "unread-bookings-count"]
+            }
+          }
+        },
+        {
+          "name": "Mark Bookings as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/guides/mark-bookings-read",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "guides", "mark-bookings-read"]
+            }
+          }
+        },
+        {
+          "name": "Update Booking Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/guides/bookings/{{bookingId}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "guides", "bookings", "{{bookingId}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"guide_id\": 1,\n    \"amount\": 1000,\n    \"payment_method\": \"khalti\",\n    \"transaction_id\": \"trans_123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/payments",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/payments/history",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "payments", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/notifications",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3002/api/notifications/{{notificationId}}/read",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "notifications", "{{notificationId}}", "read"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": "your_jwt_token_here"
+    },
+    {
+      "key": "admin_token",
+      "value": "your_admin_jwt_token_here"
+    },
+    {
+      "key": "userId",
+      "value": "user_id_here"
+    },
+    {
+      "key": "guideId",
+      "value": "guide_id_here"
+    },
+    {
+      "key": "blogId",
+      "value": "blog_id_here"
+    },
+    {
+      "key": "bookingId",
+      "value": "booking_id_here"
+    },
+    {
+      "key": "notificationId",
+      "value": "notification_id_here"
+    }
+  ]
+} 
