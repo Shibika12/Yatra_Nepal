@@ -8,6 +8,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
 const GuideDashboard = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -24,7 +25,7 @@ const GuideDashboard = () => {
   const [isAvailable, setIsAvailable] = useState(true);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   
-  // Static data for messages
+
   const [messages] = useState([
     {
       id: 1,
@@ -225,12 +226,14 @@ const GuideDashboard = () => {
       );
       
       setIsEditing(false);
+      toast.success('Profile updated successfully!');
       fetchGuideData();
     } catch (err) {
       console.error('Error updating profile:', err);
       if (err.response) {
         console.error('Error response:', err.response.data);
       }
+      toast.error('Failed to update profile. Please try again.');
       setError('Failed to update profile. Please try again later.');
     }
   };
@@ -271,12 +274,14 @@ const GuideDashboard = () => {
       );
       
       setIsEditingAbout(false);
+      toast.success('About section updated successfully!');
       fetchGuideData();
     } catch (err) {
       console.error('Error updating about section:', err);
       if (err.response) {
         console.error('Error response:', err.response.data);
       }
+      toast.error('Failed to update about section. Please try again.');
       setError('Failed to update about section. Please try again later.');
     }
   };
@@ -317,12 +322,14 @@ const GuideDashboard = () => {
       );
       
       setIsEditingSpecialization(false);
+      toast.success('Specialization updated successfully!');
       fetchGuideData();
     } catch (err) {
       console.error('Error updating specialization:', err);
       if (err.response) {
         console.error('Error response:', err.response.data);
       }
+      toast.error('Failed to update specialization. Please try again.');
       setError('Failed to update specialization. Please try again later.');
     }
   };
@@ -412,6 +419,7 @@ const GuideDashboard = () => {
 
   return (
     <div className="guide-dashboard-container">
+      <ToastContainer />
       <GuideNavbar />
       <div className="guide-dashboard-content">
         <Container>

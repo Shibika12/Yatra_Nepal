@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-// Authentication middleware
+
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -28,11 +28,11 @@ const authenticateToken = (req, res, next) => {
     }
 };
 
-// Configure multer for image upload
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const uploadDir = 'uploads/blogs';
-        // Create directory if it doesn't exist
+
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
@@ -57,7 +57,7 @@ const upload = multer({
     }
 });
 
-// Get all blogs
+
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const [blogs] = await pool.query(`
