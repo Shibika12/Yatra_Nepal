@@ -181,7 +181,10 @@ export const Blogs = () => {
                   className={`like-btn ${blog.is_liked ? 'liked' : ''}`}
                   onClick={() => handleLike(blog.blog_id)}
                 >
-                  <FiHeart className={blog.is_liked ? 'filled' : ''} />
+                  <FiHeart 
+                    className={blog.is_liked ? 'filled' : ''}
+                    style={blog.is_liked ? { fill: '#e74c3c', color: '#e74c3c' } : {}}
+                  />
                   <span>{blog.likes_count}</span>
                 </button>
               </div>
