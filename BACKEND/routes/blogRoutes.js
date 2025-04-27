@@ -218,11 +218,23 @@ router.post('/:blogId/like', authenticateToken, async (req, res) => {
         const { blogId } = req.params;
         const user_id = req.user.user_id;
 
+        // Get the blog's author
+        const [blogInfo] = await pool.query(
+            'SELECT user_id FROM blogs WHERE blog_id = ?',
+            [blogId]
+        );
+        if (!blogInfo.length) {
+            return res.status(404).json({ message: 'Blog not found' });
+        }
+        if (blogInfo[0].user_id === user_id) {
+            return res.status(400).json({ message: 'You cannot like your own blog.' });
+        }
+
         // Start transaction
         await pool.query('START TRANSACTION');
 
         // Check if blog exists and get author info with proper joins
-        const [blogInfo] = await pool.query(
+        const [blogInfoWithAuthor] = await pool.query(
             `SELECT 
                 b.blog_id, 
                 b.user_id as author_id, 
@@ -235,12 +247,12 @@ router.post('/:blogId/like', authenticateToken, async (req, res) => {
             [user_id, blogId]
         );
 
-        if (!blogInfo.length) {
+        if (!blogInfoWithAuthor.length) {
             await pool.query('ROLLBACK');
             return res.status(404).json({ message: 'Blog not found' });
         }
 
-        const { author_id, author_name, liker_name } = blogInfo[0];
+        const { author_id, author_name, liker_name } = blogInfoWithAuthor[0];
         console.log('Blog info:', { author_id, author_name, liker_name, user_id });
 
         // Check if already liked

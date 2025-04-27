@@ -68,9 +68,7 @@ export const Blogs = () => {
       
       fetchBlogs(); // Refresh blogs to update like count
     } catch (error) {
-      console.error('Error liking blog:', error.response || error);
       toast.error(error.response?.data?.message || 'Failed to like blog');
-      setError('Failed to like blog');
     }
   };
 
