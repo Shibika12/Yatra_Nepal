@@ -44,7 +44,7 @@ export const Login = () => {
           navigate('/guide/dashboard');
         } else {
           // Default to tourist role
-          navigate('/profile');
+          navigate('/home');
         }
       }
     } catch (error) {

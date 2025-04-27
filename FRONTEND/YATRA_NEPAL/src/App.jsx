@@ -131,7 +131,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Semi-Public Routes - accessible to visitors and regular users, but not admins or guides */}
+
         <Route path="/home" element={
           <SemiPublicRoute>
             <Home />
@@ -154,7 +154,7 @@ function App() {
         } />
         <Route path="/" element={<Navigate to="/home" />} />
 
-        {/* Auth Routes - Prevent access when logged in */}
+
         <Route path="/login" element={
           <PublicRoute>
             <Login />
